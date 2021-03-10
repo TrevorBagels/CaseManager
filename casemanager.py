@@ -30,12 +30,13 @@ class CaseManager:
 			f.write(json.dumps(self.data, default=json_util.default, indent=4))
 	
 	def close_case(self, case):
-		case['closed'] = datetime.datetime.now()
+		case['closed'] = datetime.datetime.now(datetime.timezone.utc)
 		case['status'] = "Closed"
 
 	def create_case(self, name, creator):
 		case = {}
-		case['created'] = datetime.datetime.now()
+		case['created'] = datetime.datetime.now(datetime.timezone.utc)
+		case['opened'] = datetime.datetime.now(datetime.timezone.utc)
 		case['name'] = name #name of the case
 		case['creator'] = creator
 		case['manager'] = creator #ID of the creator
@@ -44,7 +45,13 @@ class CaseManager:
 		case['notes'] = ""
 		#TODO security not implemented yet 
 		case['security'] = 'strict' #levels are 0=none (anyone can do anything to the case, including closing it. not implemented), 1=open (anyone can access the case and it's channel) 2=strict (you must be added by the case manager to participate) 3=private (not visible to people other than case managers and active participants)
-		self.data['cases'][name] = case
+		case['id'] = f"{str(case['created'].year)[2:]}{formatNumber(case['created'].month, 2)}{formatNumber(case['created'].day, 2)}-{str(creator)[:3]}{str(len(self.cases))}"
+		self.data['cases'][case['id']] = case
 		return case
 
+def formatNumber(num, zeros):
+	newNum = ""
+	for x in range(0, zeros-len(str(num))):
+		newNum += "0"
+	return newNum + str(num)
 

@@ -1,4 +1,5 @@
-import os, time, random, sys, discord, JSON4JSON
+import math
+import os, time, random, sys, discord, JSON4JSON, datetime
 from discord.ext import commands
 from discord.ext.commands.core import command
 from discord.utils import get
@@ -61,8 +62,27 @@ class MainCmds(commands.Cog):
 				if previousEmail != None: self.bot.drive.unshare(case['driveID'], previousEmail)
 				self.bot.drive.share(case['driveID'], email)
 		self.bot.CM.save()
-	
-		
+	@commands.command(brief='lists all cases')
+	async def cases(self, ctx):
+		if self.bot.has_permission(ctx.author, perm='use'):
+			openCases = []
+			closedCases = []
+			for x in self.bot.CM.cases:
+				case = self.bot.CM.cases[x]
+				if case['status'] == "Open": openCases.append(case)
+				else: closedCases.append(case)
+			embed = discord.Embed(title="Dashboard", description=f"{len(openCases)} {pluralize('case', len(openCases))} open.")
+			for x in openCases:
+				timeOpened = datetime.datetime.now(datetime.timezone.utc) - case['opened']
+				days = timeOpened.days
+				timeOpened = f"{days} {pluralize('day', days)}"
+				embed.add_field(name=x['id'], value=f"""
+				\"{x['name']}\"
+				Currently managed by {mention(x['manager'])}.
+				Open for {timeOpened}.
+				{len(x['members'])} {pluralize('member', len(x['members']))} assigned.
+				""")
+			await ctx.channel.send(embed=embed)
 	@commands.command(brief='creates a case')
 	async def create(self, ctx, *, name):
 		if self.bot.has_permission(ctx.author, perm='create'):
@@ -76,7 +96,7 @@ class MainCmds(commands.Cog):
 				if existingChannel == None:
 					await ctx.channel.send("Restoring case (channel messages have been wiped).")
 					category = await self.bot.fetch_channel(self.bot.CM.data['server']['caseCategoryID'])
-					caseChannel = await self.bot.server.create_text_channel(existingCase['name'], category=category)
+					caseChannel = await self.bot.server.create_text_channel(existingCase[self.bot.config['casePropertyForChannelNaming']], category=category)
 					existingCase['channelID'] = caseChannel.id
 					await self.update_case_info(existingCase)
 				else:
@@ -84,6 +104,7 @@ class MainCmds(commands.Cog):
 			else:
 				await ctx.channel.send(f"Making new case called \"{name}\"")
 				case = self.bot.CM.create_case(name, ctx.author.id)
+				await ctx.channel.send(f"This case's ID is {case['id']}")
 				#make a google drive folder
 				if self.bot.config['gdrive']:
 					caseFolder = self.bot.drive.new_folder(name)
@@ -98,7 +119,7 @@ class MainCmds(commands.Cog):
 					if emailFound == False:
 						await ctx.channel.send(f"It is recommended that you link your email to gain access to the case's Google Drive folder. Use `{self.bot.config['prefix']}setemail youremail@gmail.com` to set your email address.")
 				category = await self.bot.fetch_channel(self.bot.CM.data['server']['caseCategoryID'])
-				caseChannel = await self.bot.server.create_text_channel(case['name'], category=category)
+				caseChannel = await self.bot.server.create_text_channel(case[self.bot.config['casePropertyForChannelNaming']], category=category)
 				case['channelID'] = caseChannel.id
 				msg = await caseChannel.send(embed= await self.get_case_embed(case))
 				await msg.pin()
@@ -135,10 +156,20 @@ class MainCmds(commands.Cog):
 		if not manager:
 			await ctx.channel.send("You cannot do this.")
 		else:
-			if self.bot.has_permission((await self.bot.fetch_user(target)), perm='use'):
+			#targetMember = await self.bot.server.fetch_member(target)
+			#print('aaaaa', targetMember.roles)
+			if True:# or self.bot.has_permission(targetMember, perm='use'):
 				case['manager'] = target
+				if target not in case['members']:
+					case['members'].append(target)
+					email = self.get_email(target)
+					if "@" in email:
+						self.bot.drive.share(case['id'], email)
+					else:
+						await ctx.channel.send("Note: the new manager does not have an email.")
+				await ctx.channel.send("Manager updated.")
 				self.bot.CM.save()
-				self.update_case_info(case)
+				await self.update_case_info(case)
 			else:
 				await ctx.channel.send("This target member does not have the right permissions to have ownership of a case.")
 	@commands.command(brief="closes a case")
@@ -203,12 +234,6 @@ class MainCmds(commands.Cog):
 				self.bot.CM.save()
 			else:
 				await ctx.channel.send(f"This member is not added to the case.")
-	
-			
-	def get_email(self, userID):
-		if str(userID) in self.bot.CM.data['server']['members']:
-			return self.bot.CM.data['server']['members'][str(userID)]['email']
-		return ""
 
 	async def update_case_info(self, case):
 		channel = await self.bot.fetch_channel(case['channelID'])
@@ -246,3 +271,13 @@ class MainCmds(commands.Cog):
 			embed.add_field(name="Google Drive", value=case['url'], inline=False)
 		return embed
 	#endregion
+	def get_email(self, userID):
+		if str(userID) in self.bot.CM.data['server']['members']:
+			return self.bot.CM.data['server']['members'][str(userID)]['email']
+		return ""
+
+
+def pluralize(word, value, plural=None):
+	if plural == None: plural = word + "s"
+	if value == 1: return word
+	return plural

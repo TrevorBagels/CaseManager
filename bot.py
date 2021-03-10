@@ -36,7 +36,8 @@ class CaseBot(commands.Bot):
 		highestLevel = 0 #0 = none, 1 = view, 2 = use, 3 = manage
 		levels = {'view': 1, 'use': 2, 'create': 3, 'manage': 4}
 		for x in user.roles:
-			if str(x.id) in self.CM.data['server']['roles']:
+			print(x)
+			if x != None and str(x.id) in self.CM.data['server']['roles']:
 				level = levels[self.CM.data['server']['roles'][str(x.id)]]
 				if level > highestLevel:
 					highestLevel = level
