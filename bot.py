@@ -1,4 +1,4 @@
-import os, time, random, sys, discord, JSON4JSON
+import os, time, random, sys, discord, JSON4JSON, traceback
 from discord import guild
 from discord.ext import commands
 from discord.ext.commands.core import command
@@ -42,6 +42,12 @@ class CaseBot(commands.Bot):
 				if level > highestLevel:
 					highestLevel = level
 		return highestLevel >= levels[perm]
+	
+	async def on_command_error(self, ctx, error):
+		if isinstance(error, commands.MissingRequiredArgument):
+			await ctx.channel.send(f'Usage: ``{self.config["prefix"]} {ctx.command.__original_kwargs__["usage"]}``')
+		else:
+			traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 		
 
 

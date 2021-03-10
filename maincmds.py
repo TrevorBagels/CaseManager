@@ -25,7 +25,7 @@ class MainCmds(commands.Cog):
 		self.bot.CM.cases = self.bot.CM.data['cases']
 		self.bot.CM.save()
 	
-	@commands.command(brief='sets the role privilleges')
+	@commands.command(brief='sets the role privilleges', usage='perm [@role] [none | use | create | manage]')
 	async def perm(self, ctx, role, level):
 		if self.bot.has_permission(ctx.author, perm='manage'):
 			if level.lower() not in ['view', 'use', 'create', 'manage', 'none']:
@@ -42,11 +42,11 @@ class MainCmds(commands.Cog):
 		if self.bot.has_permission(ctx.author, perm='manage'):
 			txt = ""
 			for x in self.bot.CM.data['server']['roles']:
-				txt += f"<@&{x}>: {self.bot.CM.data['server']['roles'][x]}\n"
+				txt += f"<@&{x}>: `{self.bot.CM.data['server']['roles'][x]}`\n"
 			await ctx.channel.send(txt)
 		else:
 			await ctx.channel.send("You are not a manager.")
-	@commands.command(brief="sets your email")
+	@commands.command(brief="sets your email", usage="setemail [your_email]")
 	async def setemail(self, ctx, email):
 		previousEmail = None
 		if str(ctx.author.id) not in self.bot.CM.data['server']['members']:
@@ -54,7 +54,7 @@ class MainCmds(commands.Cog):
 		else:
 			previousEmail = self.get_email(ctx.author.id)
 		self.bot.CM.data['server']['members'][str(ctx.author.id)]['email'] = email
-		await ctx.channel.send(f"Your email address has been set to {email}")
+		await ctx.channel.send(f"Your email address has been set to `{email}`")
 		#go through and give access to google drive things
 		for c in self.bot.CM.cases:
 			case = self.bot.CM.cases[c]
@@ -83,7 +83,7 @@ class MainCmds(commands.Cog):
 				{len(x['members'])} {pluralize('member', len(x['members']))} assigned.
 				""")
 			await ctx.channel.send(embed=embed)
-	@commands.command(brief='creates a case')
+	@commands.command(brief='creates a case', usage='create [case name]')
 	async def create(self, ctx, *, name):
 		if self.bot.has_permission(ctx.author, perm='create'):
 			if name in self.bot.CM.cases:
@@ -102,9 +102,9 @@ class MainCmds(commands.Cog):
 				else:
 					await ctx.channel.send("This case already exists!")
 			else:
-				await ctx.channel.send(f"Making new case called \"{name}\"")
+				await ctx.channel.send(f"Making new case called `\"{name}\"`")
 				case = self.bot.CM.create_case(name, ctx.author.id)
-				await ctx.channel.send(f"This case's ID is {case['id']}")
+				await ctx.channel.send(f"This case's ID is `{case['id']}`")
 				#make a google drive folder
 				if self.bot.config['gdrive']:
 					caseFolder = self.bot.drive.new_folder(name)
@@ -117,7 +117,7 @@ class MainCmds(commands.Cog):
 							emailFound = True
 							self.bot.drive.share(case['driveID'], email, access="writer")
 					if emailFound == False:
-						await ctx.channel.send(f"It is recommended that you link your email to gain access to the case's Google Drive folder. Use `{self.bot.config['prefix']}setemail youremail@gmail.com` to set your email address.")
+						await ctx.channel.send(f"It is recommended that you link your email to gain access to the case's Google Drive folder. Use `{self.bot.config['prefix']}setemail [email]` to set your email address.")
 				category = await self.bot.fetch_channel(self.bot.CM.data['server']['caseCategoryID'])
 				caseChannel = await self.bot.server.create_text_channel(case[self.bot.config['casePropertyForChannelNaming']], category=category)
 				case['channelID'] = caseChannel.id
@@ -130,6 +130,42 @@ class MainCmds(commands.Cog):
 	
 
 	#region-----------CASE SPECIFIC---------------
+
+	@commands.command(brief="sets the security of a case", usage='security [open | strict]')
+	async def security(self, ctx, level):
+		levels = ["open", "strict"]
+		case, perms, manager = await self.case_command_info(ctx)
+		if manager:
+			if level in levels:
+				lastLevel = case['security']
+				case['security'] = level
+				await ctx.channel.send(f"`{lastLevel}` -> `{level}`")
+				self.bot.CM.save()
+			else:
+				slevels = ""
+				for x in levels: slevels += f"`{x}`,"
+				await ctx.channel.send("Invallid security level. Must be one of the following: " + slevels[:-1])
+		else:
+			await ctx.channel.send("You do not have the required permissions to do this.")
+
+
+	@commands.command(brief="joins a case (if the case is open)", usage='join [case ID]')
+	async def join(self, ctx, caseID):
+		if self.bot.has_permission(ctx.author):
+			if caseID in self.bot.CM.cases:
+				case = self.bot.CM.cases[caseID]
+				if case['status'] == "Open":
+					if case['security'] == "open":
+						await self._add_to_case(ctx, case, ctx.author.id)
+						self.bot.CM.save()
+					else:
+						await ctx.channel.send("Case security is strict, you cannot add yourself to this case.")
+				else:
+					await ctx.channel.send("Case is no longer open.")
+			else:
+				await ctx.channel.send("Case does not exist!")
+		else:
+			await ctx.channel.send("You do not have permission to join cases.")
 
 	async def case_command_info(self, ctx):
 		case = None
@@ -149,7 +185,7 @@ class MainCmds(commands.Cog):
 				break
 		manager = self.bot.has_permission(ctx.author, perm='manage') or case['manager'] == ctx.author.id
 		return case, perms, manager
-	@commands.command(brief="transfers case responsibility to another user")
+	@commands.command(brief="transfers case responsibility to another user", usage='transfer [@new_manager]')
 	async def transfer(self, ctx, target):
 		target = int(target.split("!")[1].replace(">", ""))
 		case, perms, manager = await self.case_command_info(ctx)
@@ -172,6 +208,7 @@ class MainCmds(commands.Cog):
 				await self.update_case_info(case)
 			else:
 				await ctx.channel.send("This target member does not have the right permissions to have ownership of a case.")
+	
 	@commands.command(brief="closes a case")
 	async def close(self, ctx):
 		case, perms, manager = await self.case_command_info(ctx)
@@ -197,32 +234,37 @@ class MainCmds(commands.Cog):
 			await self.update_case_info(case)
 			self.bot.CM.save()
 		
-	@commands.command(brief="adds a member to a case")
+	@commands.command(brief="adds a member to a case", usage='add [@member]')
 	async def add(self, ctx, member):
 		case, perms, manager = await self.case_command_info(ctx)
 		if not manager:
 			await ctx.channel.send("You cannot add people to this case because you are not a manager.")
 		else:
 			memberID = int(member.split("!")[1].replace(">", ""))
-			member = await self.bot.fetch_user(memberID)
-			if memberID not in case['members']:
-				case['members'].append(memberID)
-				if "@" in self.get_email(memberID):
-					self.bot.drive.share(case['driveID'], self.get_email(memberID))
-				else:
-					await ctx.channel.send("Note: This user does not have an email set, so they won't have Google Drive access.")
-				await ctx.channel.send(f"Added {member.name} to the case.")
-				await self.update_case_info(case)
-				self.bot.CM.save()
+			await self._add_to_case(ctx, case, memberID)
+			
+	
+	async def _add_to_case(self, ctx, case, memberID):
+		member = await self.bot.fetch_user(memberID)
+		if memberID not in case['members']:
+			case['members'].append(memberID)
+			if "@" in self.get_email(memberID):
+				self.bot.drive.share(case['driveID'], self.get_email(memberID))
 			else:
-				await ctx.channel.send(f"This member is already added to this case. Use `{self.bot.config['prefix']}remove` to remove them.")
-	@commands.command(brief="removes a member from a case")
-	async def remove(self, ctx, member):
+				await ctx.channel.send("Note: This user does not have an email set, so they won't have Google Drive access.")
+			await ctx.channel.send(f"Added {member.name} to the case.")
+			await self.update_case_info(case)
+			self.bot.CM.save()
+		else:
+			await ctx.channel.send(f"This member is already added to this case. Use `{self.bot.config['prefix']}remove` to remove them.")
+		
+	@commands.command(brief="removes a member from a case", usage='remove [@member]')
+	async def remove(self, ctx, memberID):
 		case, perms, manager = await self.case_command_info(ctx)
 		if not manager:
 			await ctx.channel.send("You cannot remove people from this case because you are not a manager.")
 		else:
-			memberID = int(member.split("!")[1].replace(">", ""))
+			memberID = int(memberID.split("!")[1].replace(">", ""))
 			member = await self.bot.fetch_user(memberID)
 			if memberID in case['members']:
 				case['members'].remove(memberID)
@@ -265,6 +307,7 @@ class MainCmds(commands.Cog):
 			members += mention(x) + "\n"
 		members = members[:-1] #get rid of the last comma
 		embed.add_field(name="Members", value=members)
+		embed.add_field(name="Security", value=case['security'])
 		if case['status'] == "Closed":
 			embed.add_field(name="Closed",value= f"{case['created'].strftime('%m/%d%/%Y, at %H:%M')} {self.bot.config['timezone']}")
 		if self.bot.config['gdrive']:
