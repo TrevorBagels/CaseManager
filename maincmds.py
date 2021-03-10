@@ -82,7 +82,7 @@ class MainCmds(commands.Cog):
 				else:
 					await ctx.channel.send("This case already exists!")
 			else:
-				await ctx.channel.send(f"making new case called {name}")
+				await ctx.channel.send(f"Making new case called \"{name}\"")
 				case = self.bot.CM.create_case(name, ctx.author.id)
 				#make a google drive folder
 				if self.bot.config['gdrive']:
@@ -128,7 +128,19 @@ class MainCmds(commands.Cog):
 				break
 		manager = self.bot.has_permission(ctx.author, perm='manage') or case['manager'] == ctx.author.id
 		return case, perms, manager
-	
+	@commands.command(brief="transfers case responsibility to another user")
+	async def transfer(self, ctx, target):
+		target = int(target.split("!")[1].replace(">", ""))
+		case, perms, manager = await self.case_command_info(ctx)
+		if not manager:
+			await ctx.channel.send("You cannot do this.")
+		else:
+			if self.bot.has_permission((await self.bot.fetch_user(target)), perm='use'):
+				case['manager'] = target
+				self.bot.CM.save()
+				self.update_case_info(case)
+			else:
+				await ctx.channel.send("This target member does not have the right permissions to have ownership of a case.")
 	@commands.command(brief="closes a case")
 	async def close(self, ctx):
 		case, perms, manager = await self.case_command_info(ctx)
@@ -136,9 +148,11 @@ class MainCmds(commands.Cog):
 			await ctx.channel.send("You cannot close this case.")
 		else:
 			archiveCategory = await self.bot.fetch_channel(self.bot.CM.data['server']['archiveCategoryID'])
-			case['status'] = "Closed"
+			self.bot.CM.close_case(case)
+			await ctx.channel.send("Case closed.")
 			await ctx.channel.edit(category=archiveCategory)
 			await self.update_case_info(case)
+			self.bot.CM.save()
 	@commands.command(brief="opens a case back up")
 	async def reopen(self, ctx):
 		case, perms, manager = await self.case_command_info(ctx)
@@ -147,8 +161,10 @@ class MainCmds(commands.Cog):
 		else:
 			casesCategory = await self.bot.fetch_channel(self.bot.CM.data['server']['caseCategoryID'])
 			case['status'] = "Open"
+			await ctx.channel.send("Case reopened.")
 			await ctx.channel.edit(category=casesCategory)
 			await self.update_case_info(case)
+			self.bot.CM.save()
 		
 	@commands.command(brief="adds a member to a case")
 	async def add(self, ctx, member):
@@ -209,17 +225,23 @@ class MainCmds(commands.Cog):
 			await msg.edit(embed= await self.get_case_embed(case))
 
 	async def get_case_embed(self, case):
-		creator = await self.bot.fetch_user(case['creator'])
+		colors = {"Open": 0x00ff00, "Closed": 0xff0000}
+		color = discord.Color.blue
+		if case['status'] in colors: color = colors[case['status']]
 		embed = discord.Embed(title=case['name'], description=f"""
-		Opened by {creator} on {case['created'].strftime('%m/%d%/%Y, at %H:%M')} {self.bot.config['timezone']}
-		"""
+		Opened by {mention(case['creator'])} on {case['created'].strftime('%m/%d%/%Y, at %H:%M')} {self.bot.config['timezone']}
+		""",
+		color=color
 		)
 		embed.add_field(name="Status", value=case['status'])
+		embed.add_field(name="Manager", value=mention(case['manager']))
 		members = ""
 		for x in case['members']:
 			members += mention(x) + "\n"
 		members = members[:-1] #get rid of the last comma
 		embed.add_field(name="Members", value=members)
+		if case['status'] == "Closed":
+			embed.add_field(name="Closed",value= f"{case['created'].strftime('%m/%d%/%Y, at %H:%M')} {self.bot.config['timezone']}")
 		if self.bot.config['gdrive']:
 			embed.add_field(name="Google Drive", value=case['url'], inline=False)
 		return embed

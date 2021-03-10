@@ -29,6 +29,10 @@ class CaseManager:
 		with open(self.config['dataFile'], 'w+') as f:
 			f.write(json.dumps(self.data, default=json_util.default, indent=4))
 	
+	def close_case(self, case):
+		case['closed'] = datetime.datetime.now()
+		case['status'] = "Closed"
+
 	def create_case(self, name, creator):
 		case = {}
 		case['created'] = datetime.datetime.now()
