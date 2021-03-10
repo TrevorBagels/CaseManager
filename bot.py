@@ -3,7 +3,7 @@ from discord import guild
 from discord.ext import commands
 from discord.ext.commands.core import command
 from discord.utils import get
-
+from googledrive import GDrive
 
 
 class CaseBot(commands.Bot):
@@ -15,6 +15,7 @@ class CaseBot(commands.Bot):
 		self.add_cog(MainCmds(self))
 		self.CM = CaseManager(self.config)
 		self.server: discord.Guild = None
+		self.drive = GDrive(self)
 	
 	async def on_ready(self):
 		print("Ready!")

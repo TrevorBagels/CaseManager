@@ -45,7 +45,15 @@ class MainCmds(commands.Cog):
 			await ctx.channel.send(txt)
 		else:
 			await ctx.channel.send("You are not a manager.")
+	@commands.command(brief="sets your email")
+	async def setemail(self, ctx, email):
+		if str(ctx.author.id) not in self.bot.CM.data['server']['members']:
+			self.bot.CM.data['server']['members'][str(ctx.author.id)] = {"email": ""}
+		self.bot.CM.data['server']['members'][str(ctx.author.id)]['email'] = email
+		await ctx.channel.send(f"Your email address has been set to {email}")
+		self.bot.CM.save()
 	
+		
 	@commands.command(brief='creates a case')
 	async def create(self, ctx, *, name):
 		if self.bot.has_permission(ctx.author, perm='create'):
@@ -67,6 +75,19 @@ class MainCmds(commands.Cog):
 			else:
 				await ctx.channel.send(f"making new case called {name}")
 				case = self.bot.CM.create_case(name, ctx.author.id)
+				#make a google drive folder
+				if self.bot.config['gdrive']:
+					caseFolder = self.bot.drive.new_folder(name)
+					case['url'] = caseFolder['url']
+					case['driveID'] = caseFolder['id']
+					emailFound = False
+					if str(ctx.author.id) in self.bot.CM.data['server']['members']:
+						email = self.bot.CM.data['server']['members'][str(ctx.author.id)]['email']
+						if "@" in email:
+							emailFound = True
+							self.bot.drive.share(case['driveID'], email, access="owner")
+					if emailFound == False:
+						await ctx.channel.send(f"It is recommended that you link your email to gain access to the case's Google Drive folder. Use `{self.bot.config['prefix']}setemail youremail@gmail.com` to set your email address.")
 				category = await self.bot.fetch_channel(self.bot.CM.data['server']['caseCategoryID'])
 				caseChannel = await self.bot.server.create_text_channel(case['name'], category=category)
 				case['channelID'] = caseChannel.id
@@ -130,6 +151,10 @@ class MainCmds(commands.Cog):
 			member = await self.bot.fetch_user(memberID)
 			if memberID not in case['members']:
 				case['members'].append(memberID)
+				if str(memberID) in self.bot.CM.data['server']['members'] and "@" in self.bot.CM.data['server']['members'][str(memberID)]['email']:
+					self.bot.drive.share(case['driveID'], self.bot.CM.data['server']['members'][str(memberID)]['email'])
+				else:
+					await ctx.channel.send("Note: This user does not have an email set, so they won't have Google Drive access.")
 				await ctx.channel.send(f"Added {member.name} to the case.")
 				await self.update_case_info(case)
 				self.bot.CM.save()

@@ -4,17 +4,11 @@ from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
 
-#this class runs independently of the discord bot. ideally, you could use this in something other than a discord bot with a small modification to the code
+
 class CaseManager:
 	def __init__(self, config):
 		self.config = config
 		self.data = {"cases": {}, "server": {}}
-		self.drive = None
-		if self.config['gdrive']:
-			gauth = GoogleAuth()
-			gauth.LocalWebserverAuth()
-			self.drive = GoogleDrive(gauth)
-		
 		self.firstTime = False
 		try:
 			with open(self.config['dataFile'], 'r') as f:
@@ -41,15 +35,11 @@ class CaseManager:
 		case['name'] = name #name of the case
 		case['creator'] = creator
 		case['manager'] = creator #ID of the creator
-		case['gdrive'] = 'https://drive.google.com'
 		case['members'] = [creator] #people with access to the case
 		case['status'] = "Open"
 		case['notes'] = ""
 		#TODO security not implemented yet 
 		case['security'] = 'strict' #levels are 0=none (anyone can do anything to the case, including closing it. not implemented), 1=open (anyone can access the case and it's channel) 2=strict (you must be added by the case manager to participate) 3=private (not visible to people other than case managers and active participants)
-		if self.config['gdrive']:
-			folder = self.drive.CreateFile()
-			folder.Upload()
 		self.data['cases'][name] = case
 		return case
 
