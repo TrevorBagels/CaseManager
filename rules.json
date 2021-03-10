@@ -1,0 +1,7 @@
+{
+	"token": {"t": "string", "r": true},
+	"prefix": {"t": "string", "d": "?"},
+	"dataFile": {"t": "string", "d": "./data.json"},
+	"gdrive": {"t": "bool", "d": false},
+	"timezone": {"t": "string", "d": "PST"}
+}
