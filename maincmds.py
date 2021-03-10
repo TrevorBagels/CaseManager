@@ -47,10 +47,19 @@ class MainCmds(commands.Cog):
 			await ctx.channel.send("You are not a manager.")
 	@commands.command(brief="sets your email")
 	async def setemail(self, ctx, email):
+		previousEmail = None
 		if str(ctx.author.id) not in self.bot.CM.data['server']['members']:
 			self.bot.CM.data['server']['members'][str(ctx.author.id)] = {"email": ""}
+		else:
+			previousEmail = self.get_email(ctx.author.id)
 		self.bot.CM.data['server']['members'][str(ctx.author.id)]['email'] = email
 		await ctx.channel.send(f"Your email address has been set to {email}")
+		#go through and give access to google drive things
+		for c in self.bot.CM.cases:
+			case = self.bot.CM.cases[c]
+			if ctx.author.id in case['members']:
+				if previousEmail != None: self.bot.drive.unshare(case['driveID'], previousEmail)
+				self.bot.drive.share(case['driveID'], email)
 		self.bot.CM.save()
 	
 		
