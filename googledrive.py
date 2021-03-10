@@ -27,7 +27,19 @@ class GDrive:
 		print(f"added {access} permission to {id} for {email}")
 		f = None
 		return permName
+	def unshare(self, id, email):
+		f = self.drive.CreateFile({"id": id})
+		permIDs = []
+		for p in f.GetPermissions():
+			if email.lower() == p['emailAddress'].lower():
+				permIDs.append(p['id'])
+		for id in permIDs:
+			try:
+				f.DeletePermission(id)
+			except:
+				print("Failed to delete perm")
+		
+		
 
-'''
 
-'''
+

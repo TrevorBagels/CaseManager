@@ -85,7 +85,7 @@ class MainCmds(commands.Cog):
 						email = self.bot.CM.data['server']['members'][str(ctx.author.id)]['email']
 						if "@" in email:
 							emailFound = True
-							self.bot.drive.share(case['driveID'], email, access="owner")
+							self.bot.drive.share(case['driveID'], email, access="writer")
 					if emailFound == False:
 						await ctx.channel.send(f"It is recommended that you link your email to gain access to the case's Google Drive folder. Use `{self.bot.config['prefix']}setemail youremail@gmail.com` to set your email address.")
 				category = await self.bot.fetch_channel(self.bot.CM.data['server']['caseCategoryID'])
@@ -151,8 +151,8 @@ class MainCmds(commands.Cog):
 			member = await self.bot.fetch_user(memberID)
 			if memberID not in case['members']:
 				case['members'].append(memberID)
-				if str(memberID) in self.bot.CM.data['server']['members'] and "@" in self.bot.CM.data['server']['members'][str(memberID)]['email']:
-					self.bot.drive.share(case['driveID'], self.bot.CM.data['server']['members'][str(memberID)]['email'])
+				if "@" in self.get_email(memberID):
+					self.bot.drive.share(case['driveID'], self.get_email(memberID))
 				else:
 					await ctx.channel.send("Note: This user does not have an email set, so they won't have Google Drive access.")
 				await ctx.channel.send(f"Added {member.name} to the case.")
@@ -160,23 +160,30 @@ class MainCmds(commands.Cog):
 				self.bot.CM.save()
 			else:
 				await ctx.channel.send(f"This member is already added to this case. Use `{self.bot.config['prefix']}remove` to remove them.")
-	@commands.command(brief="adds a member to a case")
+	@commands.command(brief="removes a member from a case")
 	async def remove(self, ctx, member):
 		case, perms, manager = await self.case_command_info(ctx)
 		if not manager:
-			await ctx.channel.send("You cannot add people to this case because you are not a manager.")
+			await ctx.channel.send("You cannot remove people from this case because you are not a manager.")
 		else:
 			memberID = int(member.split("!")[1].replace(">", ""))
 			member = await self.bot.fetch_user(memberID)
 			if memberID in case['members']:
 				case['members'].remove(memberID)
 				await ctx.channel.send(f"Removed {member.name} from the case.")
+				#now find their email perms
+				email = self.get_email(memberID)
+				if email != "":
+					self.bot.drive.unshare(case['driveID'], email)
 				self.bot.CM.save()
 			else:
 				await ctx.channel.send(f"This member is not added to the case.")
 	
 			
-
+	def get_email(self, userID):
+		if str(userID) in self.bot.CM.data['server']['members']:
+			return self.bot.CM.data['server']['members'][str(userID)]['email']
+		return ""
 
 	async def update_case_info(self, case):
 		channel = await self.bot.fetch_channel(case['channelID'])
