@@ -204,5 +204,7 @@ class MainCmds(commands.Cog):
 			members += mention(x) + "\n"
 		members = members[:-1] #get rid of the last comma
 		embed.add_field(name="Members", value=members)
+		if self.bot.config['gdrive']:
+			embed.add_field(name="Google Drive", value=case['url'], inline=False)
 		return embed
 	#endregion
