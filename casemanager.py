@@ -14,7 +14,7 @@ class CaseManager:
 		try:
 			with open(self.config['dataFile'], 'r') as f:
 				self.data = json.loads(f.read(), object_hook=json_util.object_hook)
-			self._version_update()
+			print(self._version_update())
 		except:
 			self.data['server'] = {
 				'serverID': 0, #ID of the server

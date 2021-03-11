@@ -14,8 +14,10 @@ class CaseBot(commands.Bot):
 		commands.Bot.__init__(self, command_prefix=self.config['prefix'])
 		self.Main = maincmds.Main(self)
 		self.Cases = casecmds.Cases(self)
+		self.Division = divisioncmds.Division(self)
 		self.add_cog(self.Main)
 		self.add_cog(self.Cases)
+		self.add_cog(self.Division)
 		self.CM = CaseManager(self.config)
 		self.server: discord.Guild = None
 		self.drive = GDrive(self)
@@ -59,7 +61,7 @@ class CaseBot(commands.Bot):
 
 
 if __name__ == "__main__":
-	import maincmds, casecmds
+	import maincmds, casecmds, divisioncmds
 	from casemanager import CaseManager
 	bot = CaseBot()
 	bot.run(bot.config['token'])

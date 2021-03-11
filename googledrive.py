@@ -23,7 +23,7 @@ class GDrive:
 		self.gauth.SaveCredentialsFile("credentials.txt")
 		
 		self.drive = GoogleDrive(self.gauth)
-
+		print("Google drive initiated.")
 
 	def new_folder(self, name):
 		body = {'title': name, "mimeType": "application/vnd.google-apps.folder", "parents": [{"id": self.bot.config['parentFolderID']}]}

@@ -48,16 +48,6 @@ class Main(commands.Cog):
 			await ctx.channel.send(txt)
 		else:
 			await ctx.channel.send("You are not a manager.")
-	
-	@commands.command(brief='creates a division', usage='division [name] [description]')
-	async def division(self, ctx, name, *, description):
-		if self.bot.has_permission(ctx.author, perm='manage') == False:
-			await ctx.channel.send("You do not have permissions to do this.")
-			return
-		divRole = await self.bot.server.create_role(name=name)
-		div = self.bot.CM.create_division(name, description, divRole.id)
-		await ctx.channel.send(f"Created division {mention(divRole.id, t='role')}.")
-		self.bot.CM.save()
 
 	@commands.command(brief="sets your email", usage="setemail [your_email]")
 	async def setemail(self, ctx, email):
@@ -71,6 +61,7 @@ class Main(commands.Cog):
 		#go through and give access to google drive things
 		for c in self.bot.CM.cases:
 			case = self.bot.CM.cases[c]
+			#unshare things from the previous email
 			if ctx.author.id in case['members']:
 				if previousEmail != None: self.bot.drive.unshare(case['driveID'], previousEmail)
 				self.bot.drive.share(case['driveID'], email)
