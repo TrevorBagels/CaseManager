@@ -14,16 +14,19 @@ class MainCmds(commands.Cog):
 		self.bot = bot
 	@commands.command(brief='wipes everything')
 	async def wipe(self, ctx):
-		for x in self.bot.CM.cases:
-			channelID = self.bot.CM.cases[x]['channelID']
-			try:
-				channel = await self.bot.fetch_channel(channelID)
-				await channel.delete(reason='wiped')
-			except:
-				pass
-		self.bot.CM.data['cases'] = {}
-		self.bot.CM.cases = self.bot.CM.data['cases']
-		self.bot.CM.save()
+		if self.bot.config['dev'] == True:
+			for x in self.bot.CM.cases:
+				channelID = self.bot.CM.cases[x]['channelID']
+				try:
+					channel = await self.bot.fetch_channel(channelID)
+					await channel.delete(reason='wiped')
+				except:
+					pass
+			self.bot.CM.data['cases'] = {}
+			self.bot.CM.cases = self.bot.CM.data['cases']
+			self.bot.CM.save()
+		else:
+			await ctx.channel.send("Not in developer mode.")
 	
 	@commands.command(brief='sets the role privilleges', usage='perm [@role] [none | use | create | manage]')
 	async def perm(self, ctx, role, level):

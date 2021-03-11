@@ -10,9 +10,11 @@ class CaseManager:
 		self.config = config
 		self.data = {"cases": {}, "server": {}}
 		self.firstTime = False
+		self.version = 1.1
 		try:
 			with open(self.config['dataFile'], 'r') as f:
 				self.data = json.loads(f.read(), object_hook=json_util.object_hook)
+			self._version_update()
 		except:
 			self.data['server'] = {
 				'serverID': 0, #ID of the server
@@ -21,10 +23,19 @@ class CaseManager:
 					#'fullAccessExample': 'manage'
 				},
 				"members": {},#keeps track of member data (like emails for google drive sharing). each key is the str() of their ID
-				"version": 1
+				"version": 1,
+				"divisions": {}
 				}
 			self.firstTime = True
 		self.cases = self.data['cases']
+
+	def _version_update(self):
+		if self.version == self.data['server']['version']:
+			return "Up to date"
+		
+		self.data['server']['version'] = self.version
+		self.save()
+		return "Updated"
 
 	def save(self):
 		with open(self.config['dataFile'], 'w+') as f:
