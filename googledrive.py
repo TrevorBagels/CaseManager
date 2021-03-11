@@ -7,9 +7,24 @@ class GDrive:
 	def __init__(self, bot):
 		self.bot = bot
 		self.gauth = GoogleAuth()
-		self.gauth.CommandLineAuth()
-		self.drive = GoogleDrive(self.gauth)
+		self.drive : GoogleDrive = None
+		if self.bot.config['gdrive']:
+			self.authenticate()
 	
+	def authenticate(self):
+		self.gauth.LoadCredentialsFile("credentials.txt")
+		if self.gauth.credentials == None:
+			self.gauth.CommandLineAuth()
+		elif self.gauth.access_token_expired:
+			self.gauth.Refresh()
+		else:
+			self.gauth.Authorize()
+		
+		self.gauth.SaveCredentialsFile("credentials.txt")
+		
+		self.drive = GoogleDrive(self.gauth)
+
+
 	def new_folder(self, name):
 		body = {'title': name, "mimeType": "application/vnd.google-apps.folder", "parents": [{"id": self.bot.config['parentFolderID']}]}
 		f = self.drive.CreateFile(body)
