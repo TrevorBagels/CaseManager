@@ -225,7 +225,7 @@ class MainCmds(commands.Cog):
 	async def reopen(self, ctx):
 		case, perms, manager = await self.case_command_info(ctx)
 		if not manager:
-			await ctx.channel.send("You cannot close this case.")
+			await ctx.channel.send("You cannot reopen this case.")
 		else:
 			casesCategory = await self.bot.fetch_channel(self.bot.CM.data['server']['caseCategoryID'])
 			case['status'] = "Open"

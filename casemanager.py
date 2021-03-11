@@ -20,8 +20,9 @@ class CaseManager:
 				'roles': {
 					#'fullAccessExample': 'manage'
 				},
-				"members": {}#keeps track of member data (like emails for google drive sharing). each key is the str() of their ID
-			}
+				"members": {},#keeps track of member data (like emails for google drive sharing). each key is the str() of their ID
+				"version": 1
+				}
 			self.firstTime = True
 		self.cases = self.data['cases']
 
