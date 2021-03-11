@@ -60,7 +60,15 @@ class CaseManager:
 		case['id'] = f"{str(case['created'].year)[2:]}{formatNumber(case['created'].month, 2)}{formatNumber(case['created'].day, 2)}-{str(creator)[:3]}{str(len(self.cases))}"
 		self.data['cases'][case['id']] = case
 		return case
-
+	def create_division(self, name, description, roleID):
+		div = {}
+		div['name'] = name
+		div['desc'] = description
+		div['id'] = roleID
+		div['members'] = []
+		div['leaders'] = []
+		self.data['server']['divisions'][str(roleID)] = div
+		return div
 def formatNumber(num, zeros):
 	newNum = ""
 	for x in range(0, zeros-len(str(num))):

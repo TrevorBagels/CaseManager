@@ -12,7 +12,10 @@ class CaseBot(commands.Bot):
 		j4j.load("config.json", "rules.json")
 		self.config = j4j.data
 		commands.Bot.__init__(self, command_prefix=self.config['prefix'])
-		self.add_cog(MainCmds(self))
+		self.Main = maincmds.Main(self)
+		self.Cases = casecmds.Cases(self)
+		self.add_cog(self.Main)
+		self.add_cog(self.Cases)
 		self.CM = CaseManager(self.config)
 		self.server: discord.Guild = None
 		self.drive = GDrive(self)
@@ -48,11 +51,15 @@ class CaseBot(commands.Bot):
 			await ctx.channel.send(f'Usage: ``{self.config["prefix"]} {ctx.command.__original_kwargs__["usage"]}``')
 		else:
 			traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
-		
+	
+	def get_email(self, userID):
+		if str(userID) in self.CM.data['server']['members']:
+			return self.CM.data['server']['members'][str(userID)]['email']
+		return ""
 
 
 if __name__ == "__main__":
-	from maincmds import MainCmds
+	import maincmds, casecmds
 	from casemanager import CaseManager
 	bot = CaseBot()
 	bot.run(bot.config['token'])

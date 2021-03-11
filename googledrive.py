@@ -51,6 +51,7 @@ class GDrive:
 		for id in permIDs:
 			try:
 				f.DeletePermission(id)
+				print(f"unshared with {email}")
 			except:
 				print("Failed to delete perm")
 		
