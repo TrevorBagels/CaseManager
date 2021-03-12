@@ -21,9 +21,9 @@ class Cases(commands.Cog):
 				case = self.bot.CM.cases[x]
 				if case['status'] == "Open": openCases.append(case)
 				else: closedCases.append(case)
-			embed = discord.Embed(title="Dashboard", description=f"{len(openCases)} {pluralize('case', len(openCases))} open.")
+			embed = discord.Embed(title="Cases", description=f"{len(openCases)} {pluralize('case', len(openCases))} open.")
 			for x in openCases:
-				timeOpened = datetime.datetime.now(datetime.timezone.utc) - case['opened']
+				timeOpened = datetime.datetime.now(datetime.timezone.utc) - x['opened']
 				days = timeOpened.days
 				timeOpened = f"{days} {pluralize('day', days)}"
 				embed.add_field(name=x['id'], value=f"""
@@ -329,7 +329,7 @@ class Cases(commands.Cog):
 			members += mention(x) + "\n"
 		members = members[:-1] #get rid of the last comma
 		embed.add_field(name="Members", value=members)
-		embed.add_field(name="Security", value=case['security'])
+		embed.add_field(name="Security", value=self.bot.Dashboard.get_case_security_string(case))
 		if case['status'] == "Closed":
 			embed.add_field(name="Closed",value= f"{case['created'].strftime('%m/%d%/%Y, at %H:%M')} {self.bot.config['timezone']}")
 		if self.bot.config['gdrive']:

@@ -12,13 +12,15 @@ class CaseBot(commands.Bot):
 		j4j.load("config.json", "rules.json")
 		self.config = j4j.data
 		commands.Bot.__init__(self, command_prefix=self.config['prefix'])
+		self.CM = CaseManager(self.config)
 		self.Main = maincmds.Main(self)
 		self.Cases = casecmds.Cases(self)
 		self.Division = divisioncmds.Division(self)
+		self.Dashboard = dashboard.Dashboard(self)
 		self.add_cog(self.Main)
 		self.add_cog(self.Cases)
 		self.add_cog(self.Division)
-		self.CM = CaseManager(self.config)
+		self.add_cog(self.Dashboard)
 		self.server: discord.Guild = None
 		self.drive = GDrive(self)
 	async def get_role(self, id):
@@ -35,6 +37,8 @@ class CaseBot(commands.Bot):
 			self.CM.data['server']['serverID'] = self.server.id	
 			caseCategory = await self.server.create_category("Cases")
 			archiveCategory = await self.server.create_category("Case Archive")
+			self.Dashboard.dashboardChannel = await self.server.create_text_channel("Dashboard")
+			self.CM.data['server']['dashboard']['category'] = self.Dashboard.dashboardChannel.id
 			self.CM.data['server']['caseCategoryID'] = caseCategory.id
 			self.CM.data['server']['archiveCategoryID'] = archiveCategory.id
 			await self.lockChannel(caseCategory, self.everyone)
@@ -43,6 +47,9 @@ class CaseBot(commands.Bot):
 			await self.lockChannel(caseCategory, caseManagerRole, send=True, read=True)
 			await self.lockChannel(archiveCategory, caseManagerRole, send=True, read=True)
 			self.CM.data['server']['roles'][str(caseManagerRole.id)] = "manage"
+			await self.Dashboard.create_dashboard()
+		else:
+			await self.Dashboard.get_dashboard_channels()
 		self.CM.save()
 	
 	async def lockChannel(self, channel, allowed, send=False, read=False):
@@ -75,7 +82,7 @@ class CaseBot(commands.Bot):
 
 
 if __name__ == "__main__":
-	import maincmds, casecmds, divisioncmds
+	import maincmds, casecmds, divisioncmds, dashboard
 	from casemanager import CaseManager
 	bot = CaseBot()
 	bot.run(bot.config['token'])

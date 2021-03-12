@@ -28,12 +28,12 @@ class Main(commands.Cog):
 			await ctx.channel.send("Not in developer mode.")
 	
 	@commands.command(brief='sets the role privilleges', usage='perm [@role] [none | use | create | manage]')
-	async def perm(self, ctx, role, level):
+	async def perm(self, ctx, role:discord.Role, level):
 		if self.bot.has_permission(ctx.author, perm='manage'):
 			if level.lower() not in ['view', 'use', 'create', 'manage', 'none']:
 				await ctx.channel.send("Level must be one of the following: `none`, `view`, `use`, `create`, `manage`.")
 			else:
-				roleID = role.split("<@&")[1].split(">")[0]
+				roleID = role.id
 				self.bot.CM.data['server']['roles'][roleID] = level.lower()
 				await ctx.channel.send("Updated permissions for this role.")
 				for c in self.bot.CM.cases:

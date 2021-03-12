@@ -10,7 +10,7 @@ class CaseManager:
 		self.config = config
 		self.data = {"cases": {}, "server": {}}
 		self.firstTime = False
-		self.version = 1.1
+		self.version = 1.2
 		try:
 			with open(self.config['dataFile'], 'r') as f:
 				self.data = json.loads(f.read(), object_hook=json_util.object_hook)
@@ -23,8 +23,9 @@ class CaseManager:
 					#'fullAccessExample': 'manage'
 				},
 				"members": {},#keeps track of member data (like emails for google drive sharing). each key is the str() of their ID
-				"version": 1,
-				"divisions": {}
+				"version": self.version,
+				"divisions": {},
+				"dashboard": {}
 				}
 			self.firstTime = True
 		self.cases = self.data['cases']
@@ -32,7 +33,6 @@ class CaseManager:
 	def _version_update(self):
 		if self.version == self.data['server']['version']:
 			return "Up to date"
-		
 		self.data['server']['version'] = self.version
 		self.save()
 		return "Updated"
@@ -44,7 +44,11 @@ class CaseManager:
 	def close_case(self, case):
 		case['closed'] = datetime.datetime.now(datetime.timezone.utc)
 		case['status'] = "Closed"
-
+	def get_division(self, name):
+		for x in self.data['server']['divisions']:
+			if self.data['server']['divisions'][x]['name'] == name:
+				return self.data['server']['divisions'][x]
+		return None
 	def create_case(self, name, creator):
 		case = {}
 		case['created'] = datetime.datetime.now(datetime.timezone.utc)
