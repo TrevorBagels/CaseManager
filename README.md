@@ -12,7 +12,7 @@ A discord bot for creating/managing cases
   2. Click "Create a New Application"
   3. Go to the bot tab, click "Add Bot"
   4. Go to the "OAuth2" tab, click the "bot" checkbox
-  5. Give the bot as many permissions as you want, make sure to enable all of the text permissions, and things related to role/channel management. Hit administrator if you're willing to take that risk.
+  5. Give the bot administrator permissions (might not be necessary, but some channel permission stuff doesn't seem to work very well without it.
   6. Copy the link that shows up above "BOT PERMISSIONS" and go to it. Use this to add it to your server.
   7. Copy the bot's token (Bot tab -> "TOKEN" area -> click "Copy"
 5. Configure
