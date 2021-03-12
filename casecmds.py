@@ -50,8 +50,12 @@ class Cases(commands.Cog):
 					caseChannel = await self.bot.server.create_text_channel(existingCase[self.bot.config['casePropertyForChannelNaming']], category=category)
 					existingCase['channelID'] = caseChannel.id
 					await self.update_case_info(existingCase)
+					self.set_security(existingCase, "strict")
+					self.bot.save()
+					return
 				else:
 					await ctx.channel.send("This case already exists!")
+					return
 			else:
 				await ctx.channel.send(f"Making new case called `\"{name}\"`")
 				case = self.bot.CM.create_case(name, ctx.author.id)
@@ -75,6 +79,7 @@ class Cases(commands.Cog):
 				msg = await caseChannel.send(embed= await self.get_case_embed(case))
 				await msg.pin()
 				case['messageID'] = msg.id
+				await self.set_security(case, 'strict')
 			self.bot.CM.save()
 		else:
 			await ctx.channel.send("You do not have the required permissions to do this.")
@@ -85,17 +90,46 @@ class Cases(commands.Cog):
 		case, perms, manager = await self.case_command_info(ctx)
 		if manager:
 			if level in levels:
-				lastLevel = case['security']
-				case['security'] = level
-				await ctx.channel.send(f"`{lastLevel}` -> `{level}`")
-				self.bot.CM.save()
-				await self.update_case_info(case)
+				response = self.set_security(case, level)
+				await ctx.channel.send(response)
 			else:
 				slevels = ""
 				for x in levels: slevels += f"`{x}`,"
 				await ctx.channel.send("Invallid security level. Must be one of the following: " + slevels[:-1])
 		else:
 			await ctx.channel.send("You do not have the required permissions to do this.")
+		
+	async def set_security(self, case, level):
+		lastLevel = case['security']
+		case['security'] = level
+		channel = await self.bot.fetch_channel(case['channelID'])
+		'''
+		overwrite = discord.PermissionOverwrite()
+		overwrite.send_messages = False
+		overwrite.read_messages = False
+		await channel.set_permissions(get(self.bot.server.roles, name="@everyone"), overwrite=overwrite)
+		'''
+		overwrite = discord.PermissionOverwrite()
+		overwrite.send_messages = True
+		overwrite.read_messages = True
+		await channel.set_permissions(self.bot.user, overwrite=overwrite)
+		
+		for roleID in self.bot.CM.data['server']['roles']:
+			role = await self.bot.get_role(int(roleID))
+			print(role)
+			p = self.bot.CM.data['server']['roles'][roleID]
+			overwrite = discord.PermissionOverwrite()
+			overwrite.read_messages = True
+			if p == 'manage':
+				overwrite.send_messages = True
+				overwrite.read_messages = True
+			if p == "none":
+				overwrite.send_messages = False
+				overwrite.read_messages = False
+			await channel.set_permissions(role, overwrite=overwrite)
+		self.bot.CM.save()
+		await self.update_case_info(case)
+		return (f"`{lastLevel}` -> `{level}`")
 
 	@commands.command(brief="joins a case (if the case is open)", usage='join [case ID]')
 	async def join(self, ctx, caseID):
@@ -104,7 +138,7 @@ class Cases(commands.Cog):
 				case = self.bot.CM.cases[caseID]
 				if case['status'] == "Open":
 					if case['security'] == "open":
-						await self._add_to_case(ctx, case, ctx.author.id)
+						await self._add_to_case(ctx, case, ctx.author.id, member=ctx.author)
 						self.bot.CM.save()
 					else:
 						await ctx.channel.send("Case security is strict, you cannot add yourself to this case.")
@@ -189,10 +223,10 @@ class Cases(commands.Cog):
 		if not manager:
 			await ctx.channel.send("You cannot add people to this case because you are not a manager.")
 		else:
-			await self._add_to_case(ctx, case, member.id)
+			await self._add_to_case(ctx, case, member.id, member=member)
 			
 	
-	async def _add_to_case(self, ctx, case, memberID):
+	async def _add_to_case(self, ctx, case, memberID, member=None):
 		member = await self.bot.fetch_user(memberID)
 		if memberID not in case['members']:
 			case['members'].append(memberID)
@@ -200,6 +234,12 @@ class Cases(commands.Cog):
 				self.bot.drive.share(case['driveID'], self.bot.get_email(memberID))
 			else:
 				await ctx.channel.send("Note: This user does not have an email set, so they won't have Google Drive access.")
+			#assign channel permission
+			channel = await self.bot.fetch_channel(case['channelID'])
+			overwrite = discord.PermissionOverwrite()
+			overwrite.send_messages = True
+			overwrite.read_messages = True
+			if member != None: await channel.set_permissions(member, overwrite=overwrite)
 			await ctx.channel.send(f"Added {member.name} to the case.")
 			await self.update_case_info(case)
 			self.bot.CM.save()
@@ -212,9 +252,9 @@ class Cases(commands.Cog):
 		if not manager:
 			await ctx.channel.send("You cannot remove people from this case because you are not a manager.")
 		else:
-			await self._remove_from_case(ctx, case, member.id)
+			await self._remove_from_case(ctx, case, member.id, member=member)
 			
-	async def _remove_from_case(self, ctx, case, memberID):
+	async def _remove_from_case(self, ctx, case, memberID, member=None):
 		member = await self.bot.fetch_user(memberID)
 		if memberID in case['members']:
 			case['members'].remove(memberID)
@@ -223,8 +263,13 @@ class Cases(commands.Cog):
 			email = self.bot.get_email(memberID)
 			if email != "":
 				self.bot.drive.unshare(case['driveID'], email)
+			
+			channel = await self.bot.fetch_channel(case['channelID'])
+			overwrite = discord.PermissionOverwrite()
+			overwrite.send_messages = False
+			if member != None: await channel.set_permissions(member, overwrite=overwrite)
 			self.bot.CM.save()
-			self.update_case_info(case)
+			await self.update_case_info(case)
 		else:
 			await ctx.channel.send(f"This member is not added to the case.")
 	async def update_case_info(self, case):

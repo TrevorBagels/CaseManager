@@ -36,9 +36,13 @@ class Main(commands.Cog):
 				roleID = role.split("<@&")[1].split(">")[0]
 				self.bot.CM.data['server']['roles'][roleID] = level.lower()
 				await ctx.channel.send("Updated permissions for this role.")
+				for c in self.bot.CM.cases:
+					case = self.bot.CM.cases[c]
+					await self.bot.Cases.set_security(case, case['security'])
 				self.bot.CM.save()
 		else:
 			await ctx.channel.send("You are not a manager.")
+
 	@commands.command(brief='shows all permissions for roles')
 	async def perms(self, ctx):
 		if self.bot.has_permission(ctx.author, perm='manage'):
