@@ -131,6 +131,29 @@ class Cases(commands.Cog):
 		await self.update_case_info(case)
 		return (f"`{lastLevel}` -> `{level}`")
 
+	@commands.command(brief='assigns/unassigns a division to the case', usage='assign [@division]')
+	async def assign(self, ctx, division: discord.Role):
+		case, perms, manager = await self.case_command_info(ctx)
+		if not manager:
+			await ctx.channel.send("You do not have the required permissions to do this.")
+			return
+		if case == None:
+			return
+		if str(division.id) not in self.bot.CM.data['server']['divisions']:
+			await ctx.channel.send("The role you mentioned is not a valid division.")
+			return
+		else:
+			div = self.bot.CM.data['server']['divisions'][str(division.id)]['name']
+			if div not in case['divisions']:
+				case['divisions'].append(div)
+				await self.set_security(case, "open")
+			else:
+				case['divisions'].remove(div)
+				if len(case['divisions']) == 0:
+					await self.set_security(case, "strict")
+		self.bot.CM.save()
+
+
 	@commands.command(brief="joins a case (if the case is open)", usage='join [case ID]')
 	async def join(self, ctx, caseID):
 		if self.bot.has_permission(ctx.author):
@@ -138,7 +161,11 @@ class Cases(commands.Cog):
 				case = self.bot.CM.cases[caseID]
 				if case['status'] == "Open":
 					if case['security'] == "open":
-						await self._add_to_case(ctx, case, ctx.author.id, member=ctx.author)
+						hasMatchingDivision = len(case['divisions']) == 0 #only true if the case has no divisions. then, it's open to anyone with 'use' perms
+						for x in ctx.author.roles:
+							if str(x.id) in self.bot.CM.data['server']['divisions'] and self.bot.CM.data['server']['divisions'][str(x.id)]['name'] in case['divisions']: hasMatchingDivision = True
+						if hasMatchingDivision:
+							await self._add_to_case(ctx, case, ctx.author.id, member=ctx.author)
 						self.bot.CM.save()
 					else:
 						await ctx.channel.send("Case security is strict, you cannot add yourself to this case.")

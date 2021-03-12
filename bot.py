@@ -44,6 +44,7 @@ class CaseBot(commands.Bot):
 			await self.lockChannel(archiveCategory, caseManagerRole, send=True, read=True)
 			self.CM.data['server']['roles'][str(caseManagerRole.id)] = "manage"
 		self.CM.save()
+	
 	async def lockChannel(self, channel, allowed, send=False, read=False):
 		overwrite = discord.PermissionOverwrite()
 		overwrite.send_messages = send
@@ -63,7 +64,7 @@ class CaseBot(commands.Bot):
 	
 	async def on_command_error(self, ctx, error):
 		if isinstance(error, commands.MissingRequiredArgument):
-			await ctx.channel.send(f'Usage: ``{self.config["prefix"]} {ctx.command.__original_kwargs__["usage"]}``')
+			await ctx.channel.send(f'Usage: ``{self.config["prefix"]}{ctx.command.__original_kwargs__["usage"]}``')
 		else:
 			traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 	

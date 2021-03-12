@@ -54,6 +54,7 @@ class CaseManager:
 		case['manager'] = creator #ID of the creator
 		case['members'] = [creator] #people with access to the case
 		case['status'] = "Open"
+		case['divisions'] = [] #list of division names
 		case['notes'] = ""
 		#TODO security not implemented yet 
 		case['security'] = 'strict' #levels are 0=none (anyone can do anything to the case, including closing it. not implemented), 1=open (anyone can access the case and it's channel) 2=strict (you must be added by the case manager to participate) 3=private (not visible to people other than case managers and active participants)
