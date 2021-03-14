@@ -8,9 +8,10 @@ from pydrive.drive import GoogleDrive
 class CaseManager:
 	def __init__(self, config):
 		self.config = config
-		self.data = {"cases": {}, "server": {}}
+		self.data = {"cases": {}, "server": {}, "botMsgs": {}}
 		self.firstTime = False
 		self.version = 1.2
+		
 		try:
 			with open(self.config['dataFile'], 'r') as f:
 				self.data = json.loads(f.read(), object_hook=json_util.object_hook)
@@ -29,6 +30,7 @@ class CaseManager:
 				}
 			self.firstTime = True
 		self.cases = self.data['cases']
+		self.bot_msgs = self.data['botMsgs']
 
 	def _version_update(self):
 		if self.version == self.data['server']['version']:

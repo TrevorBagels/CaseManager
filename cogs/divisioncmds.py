@@ -8,7 +8,7 @@ from utilities import pluralize, mention
 
 
 
-class Division(commands.Cog):
+class Module(commands.Cog):
 	def __init__(self, bot: CaseBot):
 		self.bot = bot
 	

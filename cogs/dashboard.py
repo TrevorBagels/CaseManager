@@ -9,7 +9,7 @@ from utilities import pluralize, mention
 
 
 
-class Dashboard(commands.Cog):
+class Module(commands.Cog):
 	def __init__(self, bot: CaseBot):
 		self.bot = bot
 		self.CM = self.bot.CM
@@ -22,7 +22,8 @@ class Dashboard(commands.Cog):
 		self.main =  await self.dashboardChannel.fetch_message(self.CM.data['server']['dashboard']['main'])
 		self.cases = await self.dashboardChannel.fetch_message(self.CM.data['server']['dashboard']['cases'])
 		print("Dashboard loaded")
-		self.update_dashboard.start()
+		if self.bot.loaded:
+			self.update_dashboard.start() #start the loop
 	async def create_dashboard(self):
 		self.main = await self.dashboardChannel.send(embed=discord.Embed(title="\u200B", description="\u200B"))
 		self.cases = await self.dashboardChannel.send(embed=discord.Embed())

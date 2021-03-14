@@ -8,7 +8,7 @@ from utilities import pluralize, mention
 
 
 
-class Cases(commands.Cog):
+class Module(commands.Cog):
 	def __init__(self, bot: CaseBot):
 		self.bot = bot
 	
@@ -90,7 +90,7 @@ class Cases(commands.Cog):
 		case, perms, manager = await self.case_command_info(ctx)
 		if manager:
 			if level in levels:
-				response = self.set_security(case, level)
+				response = await self.set_security(case, level)
 				await ctx.channel.send(response)
 			else:
 				slevels = ""
@@ -147,10 +147,13 @@ class Cases(commands.Cog):
 			if div not in case['divisions']:
 				case['divisions'].append(div)
 				await self.set_security(case, "open")
+				await ctx.channel.send(f"Assigned case to {mention(division.id, t='role')}")
 			else:
 				case['divisions'].remove(div)
 				if len(case['divisions']) == 0:
 					await self.set_security(case, "strict")
+				await ctx.channel.send(f"Unassigned case from {mention(division.id, t='role')}")
+				
 		self.bot.CM.save()
 
 
@@ -196,19 +199,20 @@ class Cases(commands.Cog):
 		return case, perms, manager
 	
 	@commands.command(brief="transfers case responsibility to another user", usage='transfer [@new_manager]')
-	async def transfer(self, ctx, target):
-		target = int(target.split("!")[1].replace(">", ""))
+	async def transfer(self, ctx, target: discord.Member):
 		case, perms, manager = await self.case_command_info(ctx)
 		if not manager:
 			await ctx.channel.send("You cannot do this.")
 		else:
-			#targetMember = await self.bot.server.fetch_member(target)
-			#print('aaaaa', targetMember.roles)
-			if True:# or self.bot.has_permission(targetMember, perm='use'):
-				case['manager'] = target
-				if target not in case['members']:
-					case['members'].append(target)
-					email = self.bot.get_email(target)
+			if case['manager'] == target.id:
+				await ctx.channel.send("Already the manager of this case")
+				return
+			if self.bot.has_permission(target, perm='use'):
+				case['manager'] = target.id
+				if target.id not in case['members']:
+					#case['members'].append(target.id) don't use this. use _add_to_case instead
+					await self._add_to_case(ctx, case, target.id, member=target)
+					email = self.bot.get_email(target.id)
 					if "@" in email:
 						self.bot.drive.share(case['id'], email)
 					else:
@@ -254,7 +258,7 @@ class Cases(commands.Cog):
 			
 	
 	async def _add_to_case(self, ctx, case, memberID, member=None):
-		member = await self.bot.fetch_user(memberID)
+		if member == None: member = await self.bot.fetch_user(memberID)
 		if memberID not in case['members']:
 			case['members'].append(memberID)
 			if "@" in self.bot.get_email(memberID):

@@ -4,36 +4,45 @@ from discord.ext import commands
 from discord.ext.commands.core import command
 from discord.utils import get
 from googledrive import GDrive
-
+import importlib
 
 class CaseBot(commands.Bot):
 	def __init__(self):
+		self.loaded = False #this is used to check if we've loaded the bot already. mainly used in on_ready to prevent calling the same things twice
 		j4j = JSON4JSON.JSON4JSON()
 		j4j.load("config.json", "rules.json")
 		self.config = j4j.data
 		commands.Bot.__init__(self, command_prefix=self.config['prefix'])
 		self.CM = CaseManager(self.config)
-		self.Main = maincmds.Main(self)
-		self.Cases = casecmds.Cases(self)
-		self.Division = divisioncmds.Division(self)
-		self.Dashboard = dashboard.Dashboard(self)
-		self.add_cog(self.Main)
-		self.add_cog(self.Cases)
-		self.add_cog(self.Division)
-		self.add_cog(self.Dashboard)
+
+		self.Main = self.add_module("maincmds")
+		self.Cases = self.add_module("casecmds")
+		self.Division = self.add_module("divisioncmds")
+		self.Dashboard = self.add_module("dashboard")
+
 		self.server: discord.Guild = None
 		self.drive = GDrive(self)
+
+		self.bot_related_msgs = {}
+	
+	def add_module(self, name):
+		module = importlib.import_module(f".", f"cogs.{name}").Module
+		module_instance = module(self)
+		self.add_cog(module_instance)
+		return module_instance
 	async def get_role(self, id):
 		roles = await self.server.fetch_roles()
 		for x in roles:
 			if x.id == id:
 				return x
+	
 	async def on_ready(self):
 		print("Ready!")
 		guilds = await self.fetch_guilds().flatten()
 		self.server = guilds[0]
 		self.everyone = await self.get_role(self.server.id)
-		if self.CM.firstTime:
+
+		if self.CM.firstTime and self.loaded == False:
 			self.CM.data['server']['serverID'] = self.server.id	
 			caseCategory = await self.server.create_category("Cases")
 			archiveCategory = await self.server.create_category("Case Archive")
@@ -51,6 +60,7 @@ class CaseBot(commands.Bot):
 		else:
 			await self.Dashboard.get_dashboard_channels()
 		self.CM.save()
+		self.loaded = True
 	
 	async def lockChannel(self, channel, allowed, send=False, read=False):
 		overwrite = discord.PermissionOverwrite()
@@ -79,10 +89,19 @@ class CaseBot(commands.Bot):
 		if str(userID) in self.CM.data['server']['members']:
 			return self.CM.data['server']['members'][str(userID)]['email']
 		return ""
+	
+	async def on_message(self, ctx: discord.Message):
+		if str(ctx.channel.id) not in self.CM.bot_msgs:
+			self.CM.bot_msgs[str(ctx.channel.id)] = [] #an array of message IDs related to the bot
+		if len(ctx.embeds) == 0: #embeds happen in the permanent type of things, like dashboard and case overviews
+			if ctx.content.startswith(self.config['prefix']) or ctx.author.id == self.user.id:
+				self.CM.bot_msgs[str(ctx.channel.id)].append(ctx.id)
+		return await super().on_message(ctx)
+
+
 
 
 if __name__ == "__main__":
-	import maincmds, casecmds, divisioncmds, dashboard
 	from casemanager import CaseManager
 	bot = CaseBot()
 	bot.run(bot.config['token'])
