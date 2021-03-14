@@ -8,13 +8,13 @@ A discord bot for creating/managing cases
 2. Navigate to the directory (`cd CaseManager`)
 3. Install dependencies (`pip3 install -r requirements.txt`)
 4. Create a bot
-  1. Go to the [discord developer portal](https://discord.com/developers/applications)
-  2. Click "Create a New Application"
-  3. Go to the bot tab, click "Add Bot"
-  4. Go to the "OAuth2" tab, click the "bot" checkbox
-  5. Give the bot administrator permissions (might not be necessary, but some channel permission stuff doesn't seem to work very well without it.
-  6. Copy the link that shows up above "BOT PERMISSIONS" and go to it. Use this to add it to your server.
-  7. Copy the bot's token (Bot tab -> "TOKEN" area -> click "Copy"
+  * Go to the [discord developer portal](https://discord.com/developers/applications)
+  * Click "Create a New Application"
+  * Go to the bot tab, click "Add Bot"
+  * Go to the "OAuth2" tab, click the "bot" checkbox
+  * Give the bot administrator permissions (might not be necessary, but some channel permission stuff doesn't seem to work very well without it.
+  * Copy the link that shows up above "BOT PERMISSIONS" and go to it. Use this to add it to your server.
+  * Copy the bot's token (Bot tab -> "TOKEN" area -> click "Copy"
 5. Configure
   1. In the directory for the repository, create a new file called "config.json". Make the content of that file look like this:
   ```
@@ -26,8 +26,8 @@ A discord bot for creating/managing cases
   ```
   2. Replace the long string with the token you copied. 
 6. Set up google drive
-  1. Go to the [google developer console](https://console.cloud.google.com/apis/dashboard)
-  2. Create a project, call it whatever you want
+  6.1 Go to the [google developer console](https://console.cloud.google.com/apis/dashboard)
+  6.2 Create a project, call it whatever you want
   3. Click enable APIs and services after you wait a long time for stuff to load
   4. Search for "google drive api", click "google drive api"
   5. Click enable, wait forever for more stuff to load
