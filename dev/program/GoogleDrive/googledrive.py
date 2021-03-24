@@ -12,7 +12,7 @@ class GDrive:
 			self.authenticate()
 	
 	def authenticate(self):
-		self.gauth.LoadCredentialsFile("credentials.txt")
+		self.gauth.LoadCredentialsFile("./credentials.txt")
 		if self.gauth.credentials == None:
 			self.gauth.CommandLineAuth()
 		elif self.gauth.access_token_expired:
@@ -20,13 +20,13 @@ class GDrive:
 		else:
 			self.gauth.Authorize()
 		
-		self.gauth.SaveCredentialsFile("credentials.txt")
+		self.gauth.SaveCredentialsFile("./credentials.txt")
 		
 		self.drive = GoogleDrive(self.gauth)
 		print("Google drive initiated.")
 
 	def new_folder(self, name):
-		body = {'title': name, "mimeType": "application/vnd.google-apps.folder", "parents": [{"id": self.bot.config['parentFolderID']}]}
+		body = {'title': name, "mimeType": "application/vnd.google-apps.folder", "parents": [{"id": self.bot.config.parent_folder_id}]}
 		f = self.drive.CreateFile(body)
 		f.Upload()
 		values = list(f.values())
@@ -35,13 +35,15 @@ class GDrive:
 		f = None
 		return {'url': link, 'id': id}
 	def share(self, id, email, access='writer'):
-		#writer, owner, reader
+		"""access = writer | owner | reader
+		"""
 		f = self.drive.CreateFile({"id": id})
 		permission = {"type": "user", "role": access, "value": email}
 		permName = f.InsertPermission(permission)['name']
 		print(f"added {access} permission to {id} for {email}")
 		f = None
 		return permName
+	
 	def unshare(self, id, email):
 		f = self.drive.CreateFile({"id": id})
 		permIDs = []

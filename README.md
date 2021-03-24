@@ -16,12 +16,12 @@ A discord bot for creating/managing cases
   6. Copy the link that shows up above "BOT PERMISSIONS" and go to it. Use this to add it to your server.
   7. Copy the bot's token (Bot tab -> "TOKEN" area -> click "Copy"
 5. Configure
-  1. In the directory for the repository, create a new file called "config.json". Make the content of that file look like this:
+  1. In `./dev/`, create a new file called "config.json". Make the content of that file look like this:
   ```
   {
     "token": "ODE5Mjk2OTI0Nzk5NzI5NzQ1.YEkjuA.VyZaIT9TkTlv2xids-XpnMrHU7A",
     "gdrive": true,
-    "parentFolderID": "id_goes_here"
+    "parent_folder_id": "id_goes_here"
   }
   ```
   2. Replace the long string with the token you copied. 
@@ -41,17 +41,17 @@ A discord bot for creating/managing cases
   13. Click create credentials, OAuth client ID
   14. Set application type to desktop app
   15. Save and continue
-  16. Click the download button when you're taken back to the credentials tab. Save the file as `client_secrets.json` in the path of the repository.
-7. Create a folder in google drive. Call it something like "Cases". Navigate to that folder, and copy it's ID. You can get the ID from the link to the folder, it usually looks like this: `https://drive.google.com/drive/u/7/folders/`**`reallyLongFileID`**. Go back to `config.json` and set the `parentFolderID` property to the ID you just copied.
+  16. Click the download button when you're taken back to the credentials tab. Save the file as `client_secrets.json` in `./dev/`
+7. Create a folder in google drive. Call it something like "Cases". Navigate to that folder, and copy it's ID. You can get the ID from the link to the folder, it usually looks like this: `https://drive.google.com/drive/u/7/folders/`**`reallyLongFileID`**. Go back to `config.json` and set the `parent_folder_id` property to the ID you just copied.
 ## Usage
 
-**Great, now run the bot** ``python3 bot.py``
+**Great, now run the bot** ``cd ./dev`` & ``python3 bot.py``
 
 When running, go to the link that is prompted, and sign into the google account you're using with the Google Drive API. It'll tell you to copy a code and paste it into the console. Do that, press enter, and the bot should work now.
 
 When the bot first starts up, you won't have any permissions to do anything with it. Give yourself the "case manager role" that is automatically generated when initializing the bot for the first time. This will give you full access to the bot. You can add permissions to other roles using `?perm @role [permission]`. Valid permissions are: `none`, `use`, `create`, and `manage`. `use` gives access to the basic usage of the bot. `create` lets people with the role create cases with `?create [case name]`. `manage` is the highest permission, it lets people manage everything related to the bot.
 
-The bot will also create two categories, one for active cases, and another for archived cases. You can manage the permissions for these categories however you'd like the way you'd normally manage category/channel permissions.
+The bot will also create three categories, one for active cases, one for archived cases, and one for division channels. 
 
 ### Setting your email for google drive
 Use `?setemail [email_address]` to set your email address. Cases that you are a part of will automatically share their folders with you.

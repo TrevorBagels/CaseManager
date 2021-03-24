@@ -1,6 +1,5 @@
-data.json
-config.json
-__pycache__
-Drive
-client_secrets.json
-credentials.txt
+*__pycache__
+dev/data.json
+dev/credentials.txt
+dev/client_secrets.json
+dev/config.json
