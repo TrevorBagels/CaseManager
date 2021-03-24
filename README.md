@@ -8,40 +8,40 @@ A discord bot for creating/managing cases
 2. Navigate to the directory (`cd CaseManager`)
 3. Install dependencies (`pip3 install -r requirements.txt`)
 4. Create a bot
-  1. Go to the [discord developer portal](https://discord.com/developers/applications)
-  2. Click "Create a New Application"
-  3. Go to the bot tab, click "Add Bot"
-  4. Go to the "OAuth2" tab, click the "bot" checkbox
-  5. Give the bot administrator permissions (might not be necessary, but some channel permission stuff doesn't seem to work very well without it.
-  6. Copy the link that shows up above "BOT PERMISSIONS" and go to it. Use this to add it to your server.
-  7. Copy the bot's token (Bot tab -> "TOKEN" area -> click "Copy"
+    1. Go to the [discord developer portal](https://discord.com/developers/applications)
+    2. Click "Create a New Application"
+    3. Go to the bot tab, click "Add Bot"
+    4. Go to the "OAuth2" tab, click the "bot" checkbox
+    5. Give the bot administrator permissions (might not be necessary, but some channel permission stuff doesn't seem to work very well without it.
+    6. Copy the link that shows up above "BOT PERMISSIONS" and go to it. Use this to add it to your server.
+    7. Copy the bot's token (Bot tab -> "TOKEN" area -> click "Copy"
 5. Configure
-  1. In `./dev/`, create a new file called "config.json". Make the content of that file look like this:
-  ```
-  {
-    "token": "ODE5Mjk2OTI0Nzk5NzI5NzQ1.YEkjuA.VyZaIT9TkTlv2xids-XpnMrHU7A",
-    "gdrive": true,
-    "parent_folder_id": "id_goes_here"
-  }
-  ```
-  2. Replace the long string with the token you copied. 
+    1. In `./dev/`, create a new file called "config.json". Make the content of that file look like this:
+    ```
+    {
+        "token": "ODE5Mjk2OTI0Nzk5NzI5NzQ1.YEkjuA.VyZaIT9TkTlv2xids-XpnMrHU7A",
+        "gdrive": true,
+        "parent_folder_id": "id_goes_here"
+    }
+    ```
+    2. Replace the long string with the token you copied. 
 6. Set up google drive
-  1. Go to the [google developer console](https://console.cloud.google.com/apis/dashboard)
-  2. Create a project, call it whatever you want
-  3. Click enable APIs and services after you wait a long time for stuff to load
-  4. Search for "google drive api", click "google drive api"
-  5. Click enable, wait forever for more stuff to load
-  6. Click "credentials" (on the left sidebar), if it tries to take you to a credentials wizard, click it again
-  7. Click "CREATE CREDENTIALS" (near the top left), select the OAuth one, then click "configure consent screen" when it asks you to do that.
-  8. Select external, go to the next page
-  9. Fill out all the required fields, go to the next page
-  10. Skip the scopes page
-  11. Add your email as a test user, hit "save and continue"
-  12. **Go back to the credentials tab**
-  13. Click create credentials, OAuth client ID
-  14. Set application type to desktop app
-  15. Save and continue
-  16. Click the download button when you're taken back to the credentials tab. Save the file as `client_secrets.json` in `./dev/`
+    1. Go to the [google developer console](https://console.cloud.google.com/apis/dashboard)
+    2. Create a project, call it whatever you want
+    3. Click enable APIs and services after you wait a long time for stuff to load
+    4. Search for "google drive api", click "google drive api"
+    5. Click enable, wait forever for more stuff to load
+    6. Click "credentials" (on the left sidebar), if it tries to take you to a credentials wizard, click it again
+    7. Click "CREATE CREDENTIALS" (near the top left), select the OAuth one, then click "configure consent screen" when it asks you to do that.
+    8. Select external, go to the next page
+    9. Fill out all the required fields, go to the next page
+    10. Skip the scopes page
+    11. Add your email as a test user, hit "save and continue"
+    12. **Go back to the credentials tab**
+    13. Click create credentials, OAuth client ID
+    14. Set application type to desktop app
+    15. Save and continue
+    16. Click the download button when you're taken back to the credentials tab. Save the file as `client_secrets.json` in `./dev/`
 7. Create a folder in google drive. Call it something like "Cases". Navigate to that folder, and copy it's ID. You can get the ID from the link to the folder, it usually looks like this: `https://drive.google.com/drive/u/7/folders/`**`reallyLongFileID`**. Go back to `config.json` and set the `parent_folder_id` property to the ID you just copied.
 ## Usage
 
