@@ -12,9 +12,20 @@ class Main(commands.Cog):
 		from ..bot import CaseBot
 		self.bot : CaseBot = bot
 	
+
+	@commands.command(brief='turns off the bot')
+	async def shutdown(self, ctx):
+		if self.bot.has_permission(ctx.author, level=d.Perm.MANAGE):
+			self.bot.save()
+			await ctx.channel.send("Shutting down...")
+			await self.bot.logout()
+		pass
+	
+	
+
 	@commands.command(brief='purges all bot related stuff.')
 	async def purgecommands(self, ctx):
-		if self.bot.has_permission(ctx.author, perm='manage') == False: return
+		if self.bot.has_permission(ctx.author, level=d.Perm.MANAGE) == False: return
 		for cID in self.data.bot_messages:
 			channel = await self.bot.fetch_channel(int(cID))
 			for mID in self.data.bot_messages[cID]:

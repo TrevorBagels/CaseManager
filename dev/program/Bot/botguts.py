@@ -69,7 +69,6 @@ class CaseBotSpine(commands.Bot):
 		await self.lock_channel(divisions, case_manager, send=True, read=True, reason="Initialization")
 		await self.lock_channel(cases, case_manager, send=True, read=True, reason="Initialization")
 		await self.lock_channel(archive, case_manager, send=True, read=True, reason="Initialization")
-		#TODO: Create Dashboard
 	
 
 	def load_data(self):
