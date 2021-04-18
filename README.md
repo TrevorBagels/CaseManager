@@ -45,7 +45,7 @@ A discord bot for creating/managing cases
 7. Create a folder in google drive. Call it something like "Cases". Navigate to that folder, and copy it's ID. You can get the ID from the link to the folder, it usually looks like this: `https://drive.google.com/drive/u/7/folders/`**`reallyLongFileID`**. Go back to `config.json` and set the `parent_folder_id` property to the ID you just copied.
 ## Usage
 
-**Great, now run the bot** ``cd ./dev`` & ``python3 bot.py``
+**Great, now run the bot** ``cd ./dev`` & ``python3 -m program``
 
 When running, go to the link that is prompted, and sign into the google account you're using with the Google Drive API. It'll tell you to copy a code and paste it into the console. Do that, press enter, and the bot should work now.
 
