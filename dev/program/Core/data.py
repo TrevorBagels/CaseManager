@@ -62,12 +62,10 @@ class Case(Prodict):
 		self.created = now()
 		self.opened = now()
 		self.security = Security.STRICT
-		self.id = (f"{str(self.created.year)[2:]}" + 
-			"%02d"%self.created.month +
-			"%02d"%self.created.day + "-" +
-			str(creator.id)[:3] +
-			str(total_cases)
-			)
+
+		d = f"{str(self.created.year)[2:]}" + "%02d"%self.created.month + "%02d"%self.created.day
+		i = str(creator.id)[-4:] + "-" + str(total_cases)
+		self.id = i + d
 		
 
 

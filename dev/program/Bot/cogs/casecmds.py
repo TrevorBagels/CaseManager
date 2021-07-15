@@ -44,7 +44,6 @@ class Cases(commands.Cog):
 
 	@commands.command(brief="sets the security of a case", usage='security [open | strict]')
 	async def security(self, ctx, level):
-
 		case, perms, manager = await self.case_command_info(ctx)
 		if manager == False:
 			await ctx.channel.send("You do not have the required permissions to do this.")

@@ -175,12 +175,15 @@ class CaseBotSpine(commands.Bot):
 		print("Failed to get role", id)
 	
 	def has_permission(self, member, level=d.Perm.USE):
+		restricted = False
 		highest_level = d.Perm.NONE
 		for x in member.roles:
 			if x != None and str(x.id) in self.data.perms:
+				if self.data.perms[str(x.id)] == -1:
+					restricted = True
 				this_level = self.data.perms[str(x.id)]
 				if this_level > highest_level: highest_level = this_level
-		return highest_level >= level
+		return highest_level >= level and restricted == False
 
 	def pluralize(self, word, value, plural=None) -> str:
 		if plural == None: plural = word + "s"
@@ -188,7 +191,7 @@ class CaseBotSpine(commands.Bot):
 		return plural
 
 	def mention(self, id, t='u') -> str:
-		types = {'u': '@!', 'r': '@&'}
+		types = {'u': '@!', 'r': '@&', "c": "#"}
 		return f"<{types[t[0]]}{id}>"
 
 	def is_email(self, email:str) -> bool:
