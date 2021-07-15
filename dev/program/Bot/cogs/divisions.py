@@ -42,10 +42,10 @@ class Divisions(commands.Cog):
 				await self.bot.lock_channel(channel, divRole, send=True, read=True)
 				self.bot.save()
 
-	@commands.group(pass_context=True, brief="create | add | remove | list | members | info | setinfo")
+	@commands.group(pass_context=True, brief="create | add | remove | list | members | info | setinfo | addleader | removeleader")
 	async def division(self, ctx):
 		if ctx.invoked_subcommand is None:
-			await ctx.channel.send("`create` | `add` | `remove` | `list` | `members` | `info` | `setinfo` ")
+			await ctx.channel.send("`create` | `add` | `remove` | `list` | `members` | `info` | `setinfo` | `addleader` | `removeleader` ")
 		pass
 	
 
@@ -96,16 +96,18 @@ class Divisions(commands.Cog):
 	async def members(self, ctx, division: discord.Role):
 		if self.bot.has_permission(ctx.author) == False:
 			return
-		txt = ""
 		#div = self.data.divisions[str(division.id)]
 		div = await self.get_division(ctx, division)
+		leaders = '\u200B'
+		if len(div.leaders) > 0:
+			leaders = "Division leaders: " + ', '.join([self.bot.mention(x) for x in div.leaders])
+		e = discord.Embed(title=f"Members of {div.name}", description=leaders)
 		for x in div.members:
-			txt += " " + self.bot.mention(x) + ","
-		if txt != "":
-			txt = f"Members of {self.bot.mention(division.id, t='r')}:" + txt[:-1]
+			e.add_field(name="\u200B", value=self.bot.mention(x))
+		if len(div.members) > 0:
+			await ctx.channel.send(embed=e)
 		else:
-			txt = "This division has no members."
-		await ctx.channel.send(txt)
+			await ctx.channel.send("This division has no members.")
 		
 	@division.command(brief='shows all divisions')
 	async def list(self, ctx):
@@ -157,6 +159,41 @@ class Divisions(commands.Cog):
 		await ctx.channel.send(f"Deleted division {div.name}")
 		await channel.delete()
 		self.bot.save()
+	
+	@division.command(brief='adds a leader to a division. ', usage='division addleader [@member] [@division]')
+	async def addleader(self, ctx, member:discord.Member, division:discord.Role):
+		if await self.bot.permission(ctx, d.Perm.USE) == False: return
+		if str(division.id) not in self.data.divisions:
+			await ctx.channel.send("Not a division.")
+			return
+		div = self.data.divisions[str(division.id)]
+		if ctx.author.id in div.leaders or await self.bot.permission(ctx):
+			if member.id not in div.members:
+				await ctx.channel.send("This member needs to be part of the division before being promoted to a division leader.")
+				return
+			if member.id in div.leaders:
+				await ctx.channel.send("This member is already in this division.")
+				return
+			
+			div.leaders.append(member.id)
+			await ctx.channel.send(f"Added {self.bot.mention(member.id)} as a division leader for {div.name}.")
+			self.bot.save()
+	@division.command(brief='removes a leader from a division. ', usage='division removeleader [@member] [@division]')
+	async def removeleader(self, ctx, member:discord.Member, division:discord.Role):
+		if await self.bot.permission(ctx, d.Perm.USE) == False: return
+		if str(division.id) not in self.data.divisions:
+			await ctx.channel.send("Not a division.")
+			return
+		div = self.data.divisions[str(division.id)]
+		if ctx.author.id in div.leaders or await self.bot.permission(ctx):
+			if member.id not in div.leaders:
+				await ctx.channel.send("Already not a leader!")
+				return
+			div.leaders.remove(member.id)
+			await ctx.channel.send(f"Removed {self.bot.mention(member.id)} from {div.name} leaders.")
+			self.bot.save()
+
+
 	@division.command(brief='adds a member to a division', usage='division add [@member] [@division]')
 	async def add(self, ctx, member: discord.Member, division: discord.Role):
 		if await self.bot.permission(ctx, d.Perm.USE) == False: return
