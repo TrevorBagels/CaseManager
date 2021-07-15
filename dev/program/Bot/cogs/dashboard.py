@@ -12,25 +12,32 @@ class Dashboard(commands.Cog):
 	data:	d.SaveData
 	def __init__(self, bot):
 		from ..bot import CaseBot
-		self.bot:CaseBot= bot
+		self.bot:CaseBot = bot
 		self.dashboard:discord.TextChannel = None
 		self.loop_started = False
 	
 	async def get_dashboard_channels(self): #called during on_ready
+		await self.bot.restore_missing_channels()
 		self.dashboard 	= await self.bot.fetch_channel(self.data.channels.dashboard)
+		await self.bot.restore_missing_dashboard_messages()
+		print(f"Fetching message with ID {self.data.channels.dashboard_main}...")
 		self.main 		= await self.dashboard.fetch_message(self.data.channels.dashboard_main)
+		print(self.main)
 		self.cases 		= await self.dashboard.fetch_message(self.data.channels.dashboard_cases)
 	
 	async def create_dashboard(self):
 		self.dashboard 	= await self.bot.fetch_channel(self.data.channels.dashboard)
 		self.main = await self.dashboard.send(embed=discord.Embed(title="\u200B", description="\u200B"))
-		self.cases = await self.dashboard.send(embed=discord.Embed())
+		self.cases = await self.dashboard.send(embed=discord.Embed(title="\u200B", description="\u200B"))
 		self.data.channels.dashboard_cases 	= self.cases.id
 		self.data.channels.dashboard_main 	= self.main.id
 		await self.get_dashboard_channels()
+		self.bot.save()
 		
 	@tasks.loop(seconds=10)
 	async def update_dashboard(self):
+		if self.main == None:
+			await self.bot.restore_missing_channels()
 		await self.main.edit(embed 	= await self.get_main_embed())
 		await self.cases.edit(embed	= await self.get_cases_embed())
 

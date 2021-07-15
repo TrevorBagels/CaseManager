@@ -12,18 +12,62 @@ class Divisions(commands.Cog):
 		from ..bot import CaseBot
 		self.bot:CaseBot = bot
 	
-	@commands.group(pass_context=True)
+	@commands.group(pass_context=True, brief="create | add | remove | list | members | info | setinfo")
 	async def division(self, ctx):
 		if ctx.invoked_subcommand is None:
-			await ctx.channel.send("`create` | `add` | `remove | list | members` ")
+			await ctx.channel.send("`create` | `add` | `remove` | `list` | `members` | `info` | `setinfo` ")
 		pass
 	
+
+	async def get_division(self, ctx, division):
+		if type(division) == discord.Role:
+			if str(division.id) in self.data.divisions:
+				return self.data.divisions[str(division.id)]
+			else:
+				await ctx.channel.send("This role is not part of a division.")
+		if type(division) == str:
+			for k, d in self.data.divisions.items():
+				if d.name.lower() == division or d.description.lower() == division:
+					return d
+		await ctx.channel.send("Could not find this division. ")
+			
+
+
+	@division.command(brief='shows info about a division', usage='division info [@division]')
+	async def info(self, ctx, division: discord.Role):
+		div = await self.get_division(ctx, division)
+		if div.info != None and div.info != "":
+			await ctx.channel.send(div.info)
+		elif div.description != None and div.description != "":
+			await ctx.channel.send(div.description)
+		else:
+			await ctx.channel.send("No further info for this division. ")
+	
+	@division.command(brief='sets info for  a division', usage='division setinfo [@division]')
+	async def setinfo(self, ctx, division: discord.Role, *info):
+		
+		if len(info) > 0: info = " ".join(info)
+		
+		if self.bot.has_permission(ctx.author) == False:
+			return
+		div = await self.get_division(ctx, division)
+		e = discord.Embed(title="result of setinfo", description="\u200B")
+		oi = "no info set"
+		if div.info != None and div.info != "":
+			oi = div.info
+		e.add_field(name="original info",value=oi)
+		e.add_field(name="new info", value=str(info))
+		div.info = info
+		await ctx.channel.send(embed=e)
+		self.bot.save()
+
 	@division.command(brief='shows members of a division', usage='division members [@division]')
 	async def members(self, ctx, division: discord.Role):
 		if self.bot.has_permission(ctx.author) == False:
 			return
 		txt = ""
-		div = self.data.divisions[str(division.id)]
+		#div = self.data.divisions[str(division.id)]
+		div = await self.get_division(ctx, division)
 		for x in div.members:
 			txt += " " + self.bot.mention(x) + ","
 		if txt != "":
@@ -36,12 +80,13 @@ class Divisions(commands.Cog):
 	async def list(self, ctx):
 		if self.bot.has_permission(ctx.author) == False:
 			return
+		e = discord.Embed(title="Divisions", description="\u200B")
 		
-		txt = ""
 		for rid, div in self.data.divisions.items():
-			txt += self.bot.mention(rid, t='role') + "\n"
-		if txt == "": await ctx.channel.send("No divisons to list.")
-		else: await ctx.channel.send(txt)
+			desc = div.description or "no description found"
+			e.add_field(name=div.name, value=desc)
+		if len(self.data.divisions) == 0: await ctx.channel.send("No divisons to list.")
+		else: await ctx.channel.send(embed=e)
 	
 	@division.command(brief='creates a division', usage='division create [name] [(optional) description]')
 	async def create(self, ctx, name, *description):

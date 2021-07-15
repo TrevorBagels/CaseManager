@@ -24,11 +24,12 @@ class CaseBot(botguts.CaseBotSpine):
 
 	async def on_ready(self):
 		await super().on_ready()
-		
 		await self.Dashboard.get_dashboard_channels()
 		if self.Dashboard.loop_started == False:
 			self.Dashboard.loop_started = True
 			self.Dashboard.update_dashboard.start() #start the dashboard update loop
+		#await self.restore_missing_channels() #in case anything was removed.
+		
 	
 	async def first_init(self):
 		await super().first_init()

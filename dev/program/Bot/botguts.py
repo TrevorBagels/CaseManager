@@ -44,6 +44,38 @@ class CaseBotSpine(commands.Bot):
 		self.save()
 		print("Ready!")
 	
+	async def restore_missing_channels(self):
+		for x in ["cases", "archive", "divisions"]:
+			try:
+				print(f"attempting to fetch channel category \"{x}\" with ID {self.data.channels[x]}")
+				category = await self.fetch_channel(self.data.channels[x])
+			except Exception as e:
+				print(e)
+				print(f"{x} category was destroyed. Making a new one.")
+				category = await self.guild.create_category(x.capitalize(), reason="Restored")
+				self.data.channels[x] = category.id
+		try:
+			print(f"attempting to fetch dashboard with ID {self.data.channels.dashboard}")
+			dashboard = await self.fetch_channel(self.data.channels.dashboard)
+		except:
+			print("Restored dashboard channel.")
+			dashboard = await self.guild.create_text_channel("Dashboard", reason="Restored")
+			self.data.channels.dashboard = dashboard.id
+
+	async def restore_missing_dashboard_messages(self):
+		try:
+			print(f"attempting to get dashboard main message with ID {self.data.channels.dashboard_main}")
+			self.Dashboard.dashboard	= await self.fetch_channel(self.data.channels.dashboard)
+			main = await self.Dashboard.dashboard.fetch_message(self.data.channels.dashboard_main)
+		except Exception as e:
+			print(e)
+			print("failed to find dashboard messages, making new ones.")
+			self.Dashboard.dashboard	= await self.fetch_channel(self.data.channels.dashboard)
+			self.Dashboard.main = await self.Dashboard.dashboard.send(embed=discord.Embed(title="\u200B", description="\u200B"))
+			self.Dashboard.cases = await self.Dashboard.dashboard.send(embed=discord.Embed(title="\u200B", description="\u200B"))
+			self.data.channels.dashboard_main 	= self.Dashboard.main.id	
+			self.data.channels.dashboard_cases 	= self.Dashboard.cases.id
+
 	async def first_init(self):
 		print("First initialization")
 		self.first_time = False
@@ -77,7 +109,9 @@ class CaseBotSpine(commands.Bot):
 			with open(self.config.data_file, "r") as f:
 				dta = json.loads(f.read(), object_hook=json_util.object_hook)
 		except:
+			dta = d.SaveData()
 			self.first_time = True
+		
 		if dta['server_id'] == 0: self.first_time = True
 		self.data:d.SaveData = d.SaveData.from_dict(dta)
 		for x in self.loaded_modules:
@@ -93,6 +127,7 @@ class CaseBotSpine(commands.Bot):
 	def save(self):
 		with open(self.config.data_file, 'w+') as f:
 			f.write(json.dumps(self.data.to_dict(is_recursive=True), default=json_util.default, indent=4))
+		print("Saved!")
 	
 	async def on_command_error(self, ctx, error):
 		if isinstance(error, commands.MissingRequiredArgument):

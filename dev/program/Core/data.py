@@ -13,6 +13,7 @@ class Security(IntEnum):
 	NONE 	= 0
 
 class Perm(IntEnum):
+	RESTRICTED = -1
 	NONE = 0
 	VIEW = 1
 	USE = 2
@@ -101,6 +102,7 @@ class Channels(Prodict):
 class Division(Prodict):
 	name:			str
 	description:	str
+	info:			str #longer description
 	role_id:		int
 	members:		list
 	leaders:		list

@@ -37,11 +37,11 @@ class Main(commands.Cog):
 		self.data.bot_messages = {}
 		self.bot.save()
 	
-	@commands.command(brief='sets the role privilleges', usage='perm [@role] [none | use | create | manage]')
+	@commands.command(brief='sets the role privilleges', usage='perm [@role] [restricted | none | use | create | manage')
 	async def perm(self, ctx, role:discord.Role, level):
 		if await self.bot.permission(ctx) == False: return
 		if level.upper() not in dir(d.Perm) or level.startswith("_"):
-			await ctx.channel.send("Level must be one of the following: `none`, `view`, `use`, `create`, `manage`.")
+			await ctx.channel.send("Level must be one of the following: `restricted`, `none`, `view`, `use`, `create`, `manage`.")
 		else:
 			roleID = str(role.id)
 			self.data.perms[roleID] = d.Perm[level.upper()]
@@ -70,7 +70,7 @@ class Main(commands.Cog):
 		else: await ctx.channel.send("This user has no perms.")
 
 
-	@commands.command(brief="sets your email", usage="setemail [name@domain.com]")
+	@commands.command(brief="sets your email. necessary for google drive access. ", usage="setemail [name@domain.com]")
 	async def setemail(self, ctx, email):
 		prev_email = self.data.get_user(ctx.author.id).email
 		if self.bot.is_email(email) == False:

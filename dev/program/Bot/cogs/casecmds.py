@@ -12,7 +12,8 @@ class Cases(commands.Cog):
 	def __init__(self, bot):
 		from ..bot import CaseBot
 		self.bot:CaseBot = bot
-	
+
+
 	@commands.command(brief='creates a case', usage='create [case name]')
 	async def create(self, ctx, *, name):
 		if await self.bot.permission(ctx, level=d.Perm.CREATE) == False: return
