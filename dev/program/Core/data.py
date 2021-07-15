@@ -1,7 +1,15 @@
+from itertools import product
 import discord
 from prodict import Prodict
 from enum import IntEnum
 from datetime import datetime, timezone
+
+class FieldType(IntEnum):
+	ANY	= 0
+	NUMBER = 1
+	INTEGER = 2
+	OPTIONS = 3
+	MULTIOPTIONS = 4
 
 class Status(IntEnum):
 	OPEN = 1
@@ -48,11 +56,13 @@ class Case(Prodict):
 	url:			str
 	channel:		int
 	message:		int
+	custom_fields:	dict[str, str] #custom field name, custom field value
 
 	def init(self):
 		self.members = []
 		self.divisions = []
 		self.notes = ""
+		self.custom_fields = []
 	
 	def create(self, creator:discord.User, total_cases):
 		self.creator = creator.id
@@ -62,10 +72,9 @@ class Case(Prodict):
 		self.created = now()
 		self.opened = now()
 		self.security = Security.STRICT
-
 		d = f"{str(self.created.year)[2:]}" + "%02d"%self.created.month + "%02d"%self.created.day
 		i = str(creator.id)[-4:] + "-" + str(total_cases)
-		self.id = i + d
+		self.id = i + "-" + d
 		
 
 
@@ -113,15 +122,31 @@ class Division(Prodict):
 
 
 
+class CustomCaseField(Prodict):
+	name:			str
+	description:	str
+	default:		any
+	order:			int
+	hidden:			bool
+	fieldtype:		FieldType 
+	options:		list[str]
+
+	def init(self):
+		self.fieldtype = FieldType.ANY
+		self.order = 0
+		self.hidden = False
+		self.options = []
+
 
 class SaveData(Prodict):
-	server_id:		int
-	cases:			dict[str, Case]
-	users:			dict[str, User]
-	divisions:		dict[str, Division]
-	perms:			dict[str, Perm]
-	channels:		Channels
-	bot_messages:	dict[str, list[int]]
+	server_id:			int
+	cases:				dict[str, Case]
+	users:				dict[str, User]
+	divisions:			dict[str, Division]
+	perms:				dict[str, Perm]
+	channels:			Channels
+	bot_messages:		dict[str, list[int]]
+	custom_case_fields:	dict[str, CustomCaseField]
 	
 	def init(self):
 		self.server_id = 0
@@ -131,6 +156,7 @@ class SaveData(Prodict):
 		self.perms = {}
 		self.channels = Channels()
 		self.bot_messages = {}
+		self.custom_case_fields = []
 	
 	def process_user(self, user_id:int):
 		if str(user_id) in self.users: return self.users[str(user_id)]
@@ -157,6 +183,11 @@ class Config(Prodict):
 
 
 def get(iterable:dict, **attrs):
+	if type(iterable) == list:
+		k1, v1 = attrs.popitem()
+		for x in iterable:
+			if x[k1] == v1:
+				return x
 	if len(attrs) == 1:
 		k1, v1 = attrs.popitem()
 		for _, v in iterable.items():

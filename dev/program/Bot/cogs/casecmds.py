@@ -1,5 +1,6 @@
 import math
 import os, time, random, sys, discord, JSON4JSON, datetime
+from typing import final
 from discord.ext import commands
 from discord.ext.commands.core import command
 from discord.utils import get
@@ -13,6 +14,95 @@ class Cases(commands.Cog):
 		from ..bot import CaseBot
 		self.bot:CaseBot = bot
 
+	@commands.command(brief="creates a custom case field", usage="createcasefield [name] [default value] [description] [order (integer)]")
+	async def createcasefield(self, ctx, name, *parameters):
+		if await self.bot.permission(ctx, level=d.Perm.MANAGE) == False: return
+		parameters = list(parameters)
+		for i in range(4): parameters.append(None)
+		default = parameters[0] or ""
+		desc = parameters[1] or ""
+		order = parameters[2] or 0
+		try: order = int(order)
+		except: pass
+		ccf = d.CustomCaseField(name=name)
+		ccf.default = default
+		ccf.description = desc
+		ccf.order = order
+		self.data.custom_case_fields[ccf.name] = ccf
+		await ctx.channel.send("Created a new custom case field.")
+		self.bot.save()
+	
+	@commands.command(brief="sets options for a case field.", usage="setoptions [field name] [options]")
+	async def setoptions(self, ctx, name, *options):
+		if await self.bot.permission(ctx, level=d.Perm.MANAGE) == False: return
+		ccf:d.CustomCaseField = self.data.custom_case_fields[name]
+		if ccf != None and len(options) > 0:
+			ccf.options = list(options)
+			await ctx.channel.send(f"Case field `{name}` new options: `{'` | `'.join(options)}`")
+			self.bot.save()
+		else:
+			await ctx.channel.send(f"Case field `{name}` doesn't exist!")
+
+	@commands.command(brief="removes a custom case field", usage="removecasefield [name]")
+	async def removecasefield(self, ctx, name):
+		if await self.bot.permission(ctx, level=d.Perm.MANAGE) == False: return
+		if name in self.data.custom_case_fields:
+			del self.data.custom_case_fields[name]
+			await ctx.channel.send("Removed the custom case field.")
+			self.bot.save()
+		else:
+			await ctx.channel.send(f"Case field `{name}` doesn't exist!")
+
+	@commands.command(brief="shows custom case fields", usage="casefields")
+	async def casefields(self, ctx):
+		if await self.bot.permission(ctx, level=d.Perm.USE) == False: return
+		e = discord.Embed(title="Custom Case Fields", description="Use `createcasefield` to create new case fields, and use `removecasefield` to delete custom case fields.")
+		for _, x in self.data.custom_case_fields.items():
+			o = ""
+			if len(x.options) > 0: o = f"\nOptions: `{'` | `'.join(x.options)}`"
+			e.add_field(name=x.name, value=f"{x.description}\nDefault: {x.default}{o}", inline=o=="")
+		await ctx.channel.send(embed=e)
+		self.bot.save()
+
+	def add_custom_fields_to_case(self, case:d.Case):
+		for _, f in self.data.custom_case_fields.items():
+			if f.name not in case.custom_fields:
+				case.custom_fields[f.name] = f.default
+		
+	@commands.command(brief="sets a custom field for the case", usage='setfield [field name] [value]')
+	async def setfield(self, ctx, fieldname, *, value):
+		case, perms, manager = await self.case_command_info(ctx)
+		self.add_custom_fields_to_case(case)
+		if manager == False:
+			await ctx.channel.send("You do not have the required permissions to do this.")
+			return
+		chosen_field:d.CustomCaseField = None
+		for _, x in self.data.custom_case_fields.items():
+			if self.bot.similar(x.name, fieldname):
+				chosen_field = x
+				break
+		if chosen_field == None:
+			await ctx.channel.send("This field doesn't exist!")
+		else:
+			final_value = value
+			if len(chosen_field.options) > 0:
+				#choose the best match
+				best_match = (None, 0)
+				for x in chosen_field.options:
+					v = self.bot.similarity(value, x)
+					if v > best_match[1] and v > .5:
+						best_match = (x, v)
+				final_value = best_match[0]
+			if final_value == None:
+				await ctx.channel.send(f"Invallid option. Please choose from the following: `{'` | `'.join(chosen_field.options)}`")
+				return
+			else:
+				case.custom_fields[chosen_field.name] = final_value
+				await self.update_case_info(case)
+				await ctx.channel.send(f"Set `{chosen_field.name}` to `{final_value}`")
+				self.bot.save()
+		
+
 
 	@commands.command(brief='creates a case', usage='create [case name]')
 	async def create(self, ctx, *, name):
@@ -22,7 +112,7 @@ class Cases(commands.Cog):
 		case = d.Case(name=name)
 		case.create(ctx.author, len(self.data.cases))
 		self.data.cases[case.id] = case
-		
+		self.add_custom_fields_to_case(case)
 		#make a google drive folder
 		if self.bot.config.gdrive:
 			caseFolder = self.bot.drive.new_folder(name)
@@ -54,7 +144,7 @@ class Cases(commands.Cog):
 			response = await self.set_security(case, d.Security[level.upper()])
 			await ctx.channel.send(response)
 		else:
-			await ctx.channel.send(f"Invallid option. Must be one of the following: `{' | '.join(levels)}`")
+			await ctx.channel.send(f"Invallid option. Must be one of the following: `{'` | `'.join(levels)}`")
 			
 		
 	async def set_security(self, case:d.Case, level:d.Security) -> str:
@@ -285,6 +375,7 @@ class Cases(commands.Cog):
 			await msg.edit(embed= await self.get_case_embed(case))
 
 	async def get_case_embed(self, case:d.Case) -> discord.Embed:
+		self.add_custom_fields_to_case(case)
 		colors = {"OPEN": 0x00ff00, "CLOSED": 0xff0000}
 		color = discord.Color.blue
 		if case.status.name in colors: color = colors[case.status.name]
@@ -304,6 +395,18 @@ class Cases(commands.Cog):
 		embed.add_field(name="Security", value=self.bot.Dashboard.get_case_security_string(case))
 		if case.status == d.Status.CLOSED:
 			embed.add_field(name="Closed",value= f"{case.created.strftime('%m/%d%/%Y, at %H:%M')} UTC")
+
+		def custom_field_sort(item):
+			print(item)
+			return self.data.custom_case_fields[item[0]].order
+		
+		custom_fields = list(case.custom_fields.items())
+		custom_fields.sort(key=custom_field_sort)
+		for x in custom_fields:
+			v = x[1]
+			if v == "": v = "\u200B"
+			embed.add_field(name=x[0], value=x[1])
+		
 		if self.bot.config.gdrive:
 			embed.add_field(name="Google Drive", value=case.url, inline=False)
 		return embed

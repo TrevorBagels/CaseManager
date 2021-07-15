@@ -22,7 +22,6 @@ class Dashboard(commands.Cog):
 		await self.bot.restore_missing_dashboard_messages()
 		print(f"Fetching message with ID {self.data.channels.dashboard_main}...")
 		self.main 		= await self.dashboard.fetch_message(self.data.channels.dashboard_main)
-		print(self.main)
 		self.cases 		= await self.dashboard.fetch_message(self.data.channels.dashboard_cases)
 	
 	async def create_dashboard(self):

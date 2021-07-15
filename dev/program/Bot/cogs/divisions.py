@@ -12,6 +12,36 @@ class Divisions(commands.Cog):
 		from ..bot import CaseBot
 		self.bot:CaseBot = bot
 	
+	async def fetch_role(self, role_id):
+		return get(await self.bot.guild.fetch_roles(), id=role_id)
+		
+
+	async def restore_missing_roles_and_channels(self):
+		divisions_category = await self.bot.fetch_channel(self.data.channels.divisions)
+
+		for role_id, div in self.data.divisions.copy().items(): #(no, this copy doesn't also make a copy of the items in the dictionary. it only copies the dictionary, pointers are left untouched.)
+			try:
+				channel = await self.bot.fetch_channel(div.channel_id)
+			except Exception as e:
+				print(e)
+				print(f"Channel for division {div.name} ({div.channel_id}) was destroyed. Restoring...")
+				div_channel = await self.bot.guild.create_text_channel(name=div.name, category=divisions_category, topic=div.description, reason="restored")
+				await self.bot.lock_channel(div_channel, self.bot.everyone)
+				div.channel_id = div_channel.id
+				divRole = await self.fetch_role(int(role_id))
+				if divRole != None:
+					await self.bot.lock_channel(div_channel, divRole, send=True, read=True)
+			divRole = await self.fetch_role(int(role_id))
+			if divRole == None:
+				print(f"Role for division {div.name} ({div.role_id}) is missing. Restoring...")
+				divRole = await self.bot.guild.create_role(name=div.name, reason="restored")
+				div.role_id = divRole.id
+				self.data.divisions[str(div.role_id)] = div
+				del self.data.divisions[role_id] #remove the original but no longer relevant KVP in the dictionary
+				channel = await self.bot.fetch_channel(div.channel_id)
+				await self.bot.lock_channel(channel, divRole, send=True, read=True)
+				self.bot.save()
+
 	@commands.group(pass_context=True, brief="create | add | remove | list | members | info | setinfo")
 	async def division(self, ctx):
 		if ctx.invoked_subcommand is None:
@@ -20,6 +50,7 @@ class Divisions(commands.Cog):
 	
 
 	async def get_division(self, ctx, division):
+		await self.restore_missing_roles_and_channels()
 		if type(division) == discord.Role:
 			if str(division.id) in self.data.divisions:
 				return self.data.divisions[str(division.id)]
@@ -78,6 +109,7 @@ class Divisions(commands.Cog):
 		
 	@division.command(brief='shows all divisions')
 	async def list(self, ctx):
+		await self.restore_missing_roles_and_channels()
 		if self.bot.has_permission(ctx.author) == False:
 			return
 		e = discord.Embed(title="Divisions", description="\u200B")
@@ -98,7 +130,7 @@ class Divisions(commands.Cog):
 			await ctx.channel.send("This division already exists!")
 			return
 		divisions_category = await self.bot.fetch_channel(self.data.channels.divisions)
-		div_channel = await self.bot.guild.create_text_channel(name=name, category=divisions_category)
+		div_channel = await self.bot.guild.create_text_channel(name=name, category=divisions_category, topic=desc)
 		divRole = await self.bot.guild.create_role(name=name)
 		await self.bot.lock_channel(div_channel, self.bot.everyone)
 		await self.bot.lock_channel(div_channel, divRole, send=True, read=True)
@@ -126,7 +158,8 @@ class Divisions(commands.Cog):
 		await channel.delete()
 		self.bot.save()
 	@division.command(brief='adds a member to a division', usage='division add [@member] [@division]')
-	async def add(self, ctx, member: discord.Member, division: discord.Role,):
+	async def add(self, ctx, member: discord.Member, division: discord.Role):
+		if await self.bot.permission(ctx, d.Perm.USE) == False: return
 		if str(division.id) not in self.data.divisions:
 			await ctx.channel.send("Not a division.")
 			return
@@ -142,7 +175,8 @@ class Divisions(commands.Cog):
 			self.bot.save()
 		
 	@division.command(brief='removes a member from a division', usage='division remove [@member] [@division]')
-	async def remove(self, ctx, member: discord.Member, division: discord.Role,):
+	async def remove(self, ctx, member: discord.Member, division: discord.Role):
+		if await self.bot.permission(ctx, d.Perm.USE) == False: return
 		if str(division.id) not in self.data.divisions:
 			await ctx.channel.send("Invallid division")
 			return
