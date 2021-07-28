@@ -69,7 +69,7 @@ class Cases(commands.Cog):
 			if f.name not in case.custom_fields:
 				case.custom_fields[f.name] = f.default
 		
-	@commands.command(brief="sets a custom field for the case", usage='setfield [field name] [value]')
+	@commands.command(name='set', brief="sets a custom field for the case", usage='set [field name] [value]')
 	async def setfield(self, ctx, fieldname, *, value):
 		case, perms, manager = await self.case_command_info(ctx)
 		self.add_custom_fields_to_case(case)
@@ -115,7 +115,7 @@ class Cases(commands.Cog):
 		self.add_custom_fields_to_case(case)
 		#make a google drive folder
 		if self.bot.config.gdrive:
-			caseFolder = self.bot.drive.new_folder(name)
+			caseFolder = self.bot.drive.new_folder(case.id)
 			case.url = caseFolder['url']
 			case.drive_id = caseFolder['id']
 			#attempt to share with this user
@@ -177,17 +177,15 @@ class Cases(commands.Cog):
 	@commands.command(brief='assigns/unassigns a division to the case', usage='assign [@division]')
 	async def assign(self, ctx, division: discord.Role):
 		case, perms, manager = await self.case_command_info(ctx)
+		if case == None: return
 		if not manager:
 			await ctx.channel.send("You do not have the required permissions to do this.")
 			return
 		
-		if case == None: return
 		
-		if str(division.id) not in self.data.divisions:
-			await ctx.channel.send("The role you mentioned is not a valid division.")
-			return
-		else:
-			await self._assign(self.data.divisions[str(division.id)], case, channel=ctx.channel)
+		div = await self.bot.Divisions.get_division(ctx, division)
+		if div != None:
+			await self._assign(div, case, channel=ctx.channel)
 
 	async def _assign(self, div:d.Division, case:d.Case, channel=None):
 		if div.name not in case.divisions:
@@ -409,6 +407,7 @@ class Cases(commands.Cog):
 		
 		if self.bot.config.gdrive:
 			embed.add_field(name="Google Drive", value=case.url, inline=False)
+		embed.set_author(name=case.id)
 		return embed
 	
 	

@@ -214,11 +214,10 @@ class CaseBotSpine(commands.Bot):
 			self.data.bot_messages[str(ctx.channel.id)] = []
 		
 		#embeds happen in the permanent type of things, like dashboard and case overviews. 
-		# only consider removal if there is no embed
+		#edit: not anymore, add them even if it's an embed. just have a list of important messages not to delete.
 		if len(ctx.embeds) == 0: 
 			if ctx.content.startswith(self.config.prefix) or ctx.author.id == self.user.id:
 				self.data.bot_messages[str(ctx.channel.id)].append(ctx.id)
-		
 		return await super().on_message(ctx)
 
 	#endregion

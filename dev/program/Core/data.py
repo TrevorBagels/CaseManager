@@ -137,12 +137,23 @@ class CustomCaseField(Prodict):
 		self.hidden = False
 		self.options = []
 
+class Department(Prodict):
+	name:			str
+	description:	str
+	info:			str
+	role_id:		int
+	divisions:		list[str] #division NAMES, not role IDs. Just in case they get deleted.
+	def init(self):
+		self.info = ""
+		self.divisions = []
+
 
 class SaveData(Prodict):
 	server_id:			int
 	cases:				dict[str, Case]
 	users:				dict[str, User]
 	divisions:			dict[str, Division]
+	departments:		dict[str, Department]
 	perms:				dict[str, Perm]
 	channels:			Channels
 	bot_messages:		dict[str, list[int]]
@@ -152,6 +163,7 @@ class SaveData(Prodict):
 		self.server_id = 0
 		self.cases = {}
 		self.users = {}
+		self.departments = {}
 		self.divisions = {}
 		self.perms = {}
 		self.channels = Channels()

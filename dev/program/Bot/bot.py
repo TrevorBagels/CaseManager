@@ -22,6 +22,8 @@ class CaseBot(botguts.CaseBotSpine):
 		self.Divisions:Divisions = self.add_module("divisions")
 		self.Dashboard:Dashboard = self.add_module("dashboard")
 
+		self.space = " ‎"
+
 	async def on_ready(self):
 		await super().on_ready()
 		await self.Dashboard.get_dashboard_channels()

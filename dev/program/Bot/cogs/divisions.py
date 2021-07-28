@@ -12,12 +12,18 @@ class Divisions(commands.Cog):
 		from ..bot import CaseBot
 		self.bot:CaseBot = bot
 	
-	async def fetch_role(self, role_id):
+	async def fetch_role(self, role_id) -> discord.Role:
 		return get(await self.bot.guild.fetch_roles(), id=role_id)
 		
 
 	async def restore_missing_roles_and_channels(self):
 		divisions_category = await self.bot.fetch_channel(self.data.channels.divisions)
+		for name, dept in self.data.departments.items():
+			deptrole = await self.fetch_role(int(dept.role_id))
+			if deptrole == None:
+				print(f"Role for department {dept.name} ({dept.role_id}) is missing. Restoring...")
+				deptrole = await self.bot.guild.create_role(name=dept.name, reason="restored")
+				dept.role_id = deptrole.id
 
 		for role_id, div in self.data.divisions.copy().items(): #(no, this copy doesn't also make a copy of the items in the dictionary. it only copies the dictionary, pointers are left untouched.)
 			try:
@@ -42,6 +48,92 @@ class Divisions(commands.Cog):
 				await self.bot.lock_channel(channel, divRole, send=True, read=True)
 				self.bot.save()
 
+	@commands.group(pass_context=True, brief="create | add | remove")
+	async def department(self, ctx):
+		if ctx.invoked_subcommand is None:
+			await ctx.channel.send("`" +  '` | `'.join("create | delete | add | remove".split(" | ")) + "`")
+		pass
+
+	@department.command(name="create", brief='creates a department', usage='department create [name] [description]')
+	async def createdept(self, ctx, name, *, desc):
+		if await self.bot.permission(ctx) == False: return
+		
+		if name in self.data.departments:
+			await ctx.channel.send("This department already exists!")
+			return
+		
+		deptrole = await self.bot.guild.create_role(name=name)
+		dept = d.Department(name=name, description=desc, role_id=deptrole.id)
+		self.data.departments[name] = dept
+		await ctx.channel.send(f"Created department {self.bot.mention(deptrole.id, t='role')}.")
+		self.bot.save()
+
+	def get_dept(self, id):
+		if type(id) == discord.Role:
+			for _, x in self.data.departments.items():
+				if int(x.role_id) == int(id.id):
+					return x
+		else:
+			if id in self.data.departments:
+				return self.data.departments[id]
+		return None
+	
+	@department.command(name="add", brief="adds a division to a department.", usage="department add [@division] [@department]")
+	async def adddept(self, ctx, division:discord.Role, department:discord.Role):
+		if await self.bot.permission(ctx) == False: return
+		div = await self.get_division(ctx, division)
+		dept = self.get_dept(department)
+		if div != None and dept != None:
+			if div.name not in dept.divisions:
+				dept.divisions.append(div.name)
+				await ctx.channel.send(f"Division {self.bot.mention(div.role_id, t='r')} added to department {self.bot.mention(dept.role_id, t='r')}!")
+			else:
+				await ctx.channel.send("This division is already a part of this department.")
+		else:
+			if div == None: await ctx.channel.send("Division could not be found!")
+			elif dept == None: await ctx.channel.send("Department could not be found!")
+		self.bot.save()
+	
+	@department.command(name="remove", brief="removes a division from a department.", usage="department remove [@division] [@department]")
+	async def removedept(self, ctx, division:discord.Role, department:discord.Role):
+		if await self.bot.permission(ctx) == False: return
+		div = await self.get_division(ctx, division)
+		dept = self.get_dept(department)
+		if div != None and dept != None:
+			if div.name in dept.divisions:
+				dept.divisions.remove(div.name)
+				await ctx.channel.send(f"Division {self.bot.mention(div.role_id, t='r')} removed from department {self.bot.mention(dept.role_id, t='r')}!")
+			else:
+				await ctx.channel.send("This division is not part of this department!")
+		else:
+			if div == None: await ctx.channel.send("Division could not be found!")
+			elif dept == None: await ctx.channel.send("Department could not be found!")
+		self.bot.save()
+	
+	@department.command(name='delete', brief='removes a department.', usage='department delete [@department]')
+	async def deletedept(self, ctx, department:discord.Role):
+		if await self.bot.permission(ctx) == False: return
+		dept = self.get_dept(department)
+		if dept == None:
+			await ctx.channel.send("Department does not exist")
+			return
+		r = await self.fetch_role(dept.role_id)
+		await r.delete(reason=f"deleted department by {ctx.author.id} ({ctx.author.display_name})")
+		del self.data.departments[dept.name]
+		await ctx.channel.send("Department removed!")
+		self.bot.save()
+
+	@department.command(name="list", brief="shows a list of departments", usage="department list")
+	async def listdepts(self, ctx):
+		if await self.bot.permission(ctx, level=d.Perm.USE) == False: return
+		if len(self.data.departments) <= 0:
+			await ctx.channel.send("No departments to list.")
+			return
+		e = discord.Embed(title="Departments", description="\u200B")
+		for _, dept in self.data.departments.items():
+			e.add_field(name=dept.name, value=dept.description)
+		await ctx.channel.send(embed=e)
+
 	@commands.group(pass_context=True, brief="create | add | remove | list | members | info | setinfo | addleader | removeleader")
 	async def division(self, ctx):
 		if ctx.invoked_subcommand is None:
@@ -61,7 +153,12 @@ class Divisions(commands.Cog):
 				if d.name.lower() == division or d.description.lower() == division:
 					return d
 		await ctx.channel.send("Could not find this division. ")
-			
+
+	def get_division_department(self, division:d.Division):
+		for _, dept in self.data.departments.items():
+			if division.name in dept.divisions:
+				return dept
+		return None
 
 
 	@division.command(brief='shows info about a division', usage='division info [@division]')
@@ -115,10 +212,23 @@ class Divisions(commands.Cog):
 		if self.bot.has_permission(ctx.author) == False:
 			return
 		e = discord.Embed(title="Divisions", description="\u200B")
+		organized = {"No department": []}
+		for _, x in self.data.departments.items():
+			organized[x.name] = []
 		
 		for rid, div in self.data.divisions.items():
-			desc = div.description or "no description found"
-			e.add_field(name=div.name, value=desc)
+			dept = self.get_division_department(div)
+			if dept == None: 	dept = "No department"
+			else:				dept = dept.name
+			organized[dept].append(div)
+		
+		for k, v in organized.items():
+			divisionlist = []
+			for x in v:
+				desc = x.description or "no description found"
+				divisionlist.append(f"{self.bot.mention(x.role_id, t='r')}\t - \t{desc}")
+			if len(divisionlist) > 0:
+				e.add_field(name=k, value='\n'.join(divisionlist))
 		if len(self.data.divisions) == 0: await ctx.channel.send("No divisons to list.")
 		else: await ctx.channel.send(embed=e)
 	
@@ -205,9 +315,11 @@ class Divisions(commands.Cog):
 			if member.id in div.members:
 				await ctx.channel.send("This member is already in this division.")
 				return
-			
 			div.members.append(member.id)
 			await member.add_roles(division)
+			#give them the relevant department role as well
+			dept = self.get_division_department(div)
+			await member.add_roles(await self.fetch_role(dept.role_id))
 			await ctx.channel.send(f"Added {self.bot.mention(member.id)} to {div.name}.")
 			self.bot.save()
 		
@@ -223,9 +335,26 @@ class Divisions(commands.Cog):
 			if member.id not in div.members:
 				await ctx.channel.send("This member is not in this division.")
 				return
-			
 			div.members.remove(member.id)
+			dept = self.get_division_department(div)
 			await member.remove_roles(division)
+			
+			#remove any roles that they don't need anymore. specifcally check and make sure all the other divisions this member is a part of aren't part of this department
+			keep_department = False
+			for r in member.roles:
+				if r.id == div.role_id: continue
+				if str(r.id) in self.data.divisions: #this is a division the member is part of. is it part of this department?
+					dpt = self.get_division_department(self.data.divisions[str(r.id)])
+					if dpt == dept:
+						keep_department = True
+			if keep_department == False:
+				try:
+					await member.remove_roles(await self.fetch_role(dept.role_id))
+				except Exception as e:
+					print(e)
+					
+
+
 			await ctx.channel.send(f"Removed {member.display_name} from {div.name}.")
 			self.bot.save()
 

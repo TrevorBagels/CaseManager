@@ -53,12 +53,38 @@ class Dashboard(commands.Cog):
 		embed.add_field(name="\u200B",value=f"{len(opened)} {self.bot.pluralize('case', len(opened))} open.")
 		embed.add_field(name="\u200B",value=f"{len(closed)} {self.bot.pluralize('case', len(closed))} closed.")
 
+
+
+
 		divisions = ""
+		organized = {"No department": []}
+		for _, x in self.data.departments.items():
+			organized[x.name] = []
+		for rid, div in self.data.divisions.items():
+			dept = self.bot.Divisions.get_division_department(div)
+			if dept == None: 	dept = "No department"
+			else:				dept = dept.name
+			organized[dept].append(div)
 		
+		for k, v in organized.items():
+			if len(v) <= 0: continue
+			#divisions += "\n**"+k+"**"
+			divisions += f"\n**{self.bot.mention(self.data.departments[k].role_id, t='r')}**"
+			if k != "No department":
+				divisions += f"\t*{self.data.departments[k].description}*"
+			divisions += "\n"
+			divisionlist = []
+			for x in v:
+				desc = x.description + "\t - " + str(len(x.members)) + self.bot.pluralize(' member', len(div.members))
+				divisionlist.append(f"`\t{x.name}\t - {desc}`")
+			if len(divisionlist) > 0:
+				divisions += '\n'.join(divisionlist) + "\n"
+
+		'''
 		for r, div in self.data.divisions.items():
 			divisions += f"{self.bot.mention(r, t='r')}: {len(div.members)} {self.bot.pluralize('member', len(div.members))}\n"
 		if divisions == "": divisions = "No divisions."
-
+		'''
 		embed.add_field(name="\u200B", value="\u200B", inline=False)
 		embed.add_field(name=f"Divisions", value=divisions)
 		return embed
@@ -70,7 +96,7 @@ class Dashboard(commands.Cog):
 			if len(case.divisions) > 0:
 				security = "open to"
 				for dname in case.divisions:
-					security += f" {self.bot.mention(d.get(self.data.divisions, name=dname).name, t='r')},"
+					security += f" {self.bot.mention(d.get(self.data.divisions, name=dname).role_id, t='r')},"
 				security = security[:-1]
 		return security.capitalize()
 

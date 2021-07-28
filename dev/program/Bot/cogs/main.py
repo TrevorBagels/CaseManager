@@ -26,14 +26,12 @@ class Main(commands.Cog):
 	@commands.command(brief='purges all bot related stuff.')
 	async def purgecommands(self, ctx):
 		if self.bot.has_permission(ctx.author, level=d.Perm.MANAGE) == False: return
-		for cID in self.data.bot_messages:
-			channel = await self.bot.fetch_channel(int(cID))
-			for mID in self.data.bot_messages[cID]:
-				try:
-					message = await channel.fetch_message(int(mID))
-					await message.delete()
-				except:
-					pass
+		for mID in self.data.bot_messages[str(ctx.channel.id)]:
+			try:
+				message = await ctx.channel.fetch_message(int(mID))
+				await message.delete()
+			except:
+				pass
 		self.data.bot_messages = {}
 		self.bot.save()
 	
